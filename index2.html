@@ -1,232 +1,264 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>牙材券查詢系統</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>牙材券查詢系統</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-  <style>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <style>
 /* --- 全局與背景設定 --- */
-    body {
-      font-family: 'Inter', 'Noto Sans TC', sans-serif;
-      font-size: 2rem; /* 保持行動版字體較大，與參考一致 */
-      background-color: #f3f4f6;
-      line-height: 1.8;
-      margin: 0;
-      padding: 0;
-      overflow-x: hidden;
-      background-image: linear-gradient(rgba(255,255,255,0.6), rgba(255,255,255,0.6)),
-                        url('https://ymdd-image-tw.s3.ap-east-2.amazonaws.com/file_00000000934461f78931c0c083eafdc7.png ');
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-      background-attachment: fixed;
-    }
+body {
+  font-family: 'Inter', 'Noto Sans TC', sans-serif;
+  font-size: 2rem; /* 保持行動版字體較大，與參考一致 */
+  background-color: #f3f4f6;
+  line-height: 1.8;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  /* 移除 URL 結尾的空格 */
+  background-image: linear-gradient(rgba(255,255,255,0.6), rgba(255,255,255,0.6)),
+                    url('https://ymdd-image-tw.s3.ap-east-2.amazonaws.com/file_00000000934461f78931c0c083eafdc7.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
 
-    @media (min-width: 768px) {
-      body {
-        background-image: linear-gradient(rgba(255,255,255,0.6), rgba(255,255,255,0.6)),
-                          url('https://ymdd-image-tw.s3.ap-east-2.amazonaws.com/photo_2025-07-25_22-19-42.jpg ');
-        font-size: 1.125rem; /* 桌機版字體大小，與參考接近 */
-      }
-    }
+/* 桌機版 (螢幕寬度 >= 768px) */
+@media (min-width: 768px) {
+  body {
+    /* 移除 URL 結尾的空格 */
+    background-image: linear-gradient(rgba(255,255,255,0.6), rgba(255,255,255,0.6)),
+                      url('https://ymdd-image-tw.s3.ap-east-2.amazonaws.com/photo_2025-07-25_22-19-42.jpg');
+    font-size: 1.125rem; /* 桌機版字體大小，與參考接近 */
+  }
+}
 
 /* --- 輸入欄位與按鈕樣式 (基於參考調整) --- */
-    /* 確保輸入欄位和選擇框的寬度行為與參考一致 */
-    input[type="text"],
-    input[type="password"],
-    select {
-        box-sizing: border-box; /* 確保 padding 和 border 包含在寬度內 */
-        /* Tailwind 的 w-full 已經讓它們填滿父容器寬度 */
-        /* 參考頁面上的輸入框是自動適應內容區塊的，不需要額外 max-width */
-    }
+input[type="text"],
+input[type="password"],
+select {
+    box-sizing: border-box; /* 確保 padding 和 border 包含在寬度內 */
+}
 
-    /* 將按鈕文字大小調整為與參考頁面更一致 */
-    button[type="submit"] {
-        font-size: 2.25rem; /* 更大的按鈕字體，參考頁面按鈕字體明顯更大 */
-        padding: 1.5rem 2.5rem; /* 增加按鈕的填充，使按鈕更大更易點擊 */
-    }
+button[type="submit"] {
+    font-size: 2.25rem; /* 更大的按鈕字體，參考頁面按鈕字體明顯更大 */
+    padding: 1.5rem 2.5rem; /* 增加按鈕的填充，使按鈕更大更易點擊 */
+}
 
 /* --- 搜尋結果卡片樣式 --- */
-    .card {
-      background-color: #ffffff;
-      padding: 1.5rem;
-      border-radius: 1.25rem;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);;
-      margin-bottom: 2rem;
-      border: 1px solid #e5e7eb;
-      /* 使用 Grid 佈局，實現標籤和值在同一行 */
-      display: grid;
-      grid-template-columns: auto 1fr; /* 標籤自動寬度，值佔據剩餘空間 */
-      gap: 0.5rem 1rem; /* 標籤和值之間的間距 */
-      align-items: center; /* 垂直居中對齊 */
-    }
+.card {
+  background-color: #ffffff;
+  padding: 1.5rem;
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1); /* 調整為更明顯的陰影 */
+  margin-bottom: 2rem;
+  border: 1px solid #e5e7eb;
+  /* 使用 Grid 佈局，實現標籤和值在同一行 */
+  display: grid;
+  grid-template-columns: auto 1fr; /* 標籤自動寬度，值佔據剩餘空間 */
+  gap: 0.5rem 1rem; /* 標籤和值之間的間距 */
+  align-items: center; /* 垂直居中對齊 */
+}
 
-    /* 卡片內標籤樣式 */
-    .card .field-label {
-      font-weight: 600;
-      color: #4a5568; /* 與主表單標籤顏色接近 */
-      font-size: 1.8rem; /* 行動版標籤字體大小 */
-      text-align: right; /* 標籤靠右對齊 */
-      padding-right: 1rem; /* 標籤與值之間的間距 */
-      white-space: nowrap; /* 防止標籤過長時換行 */
-    }
+.card .field-label {
+  font-weight: 600;
+  color: #4a5568; /* 與主表單標籤顏色接近 */
+  font-size: 1.8rem; /* 行動版標籤字體大小 */
+  text-align: right; /* 標籤靠右對齊 */
+  padding-right: 1rem; /* 標籤與值之間的間距 */
+  white-space: nowrap; /* 防止標籤過長時換行 */
+}
 
-    /* 卡片內值樣式 */
-    .card .field-value {
-      color: #2d3748; /* 與主表單文字顏色接近 */
-      padding: 0.75rem 1rem;
-      border-radius: 0.5rem;
-      background-color: #f7fafc; /* 淺色背景 */
-      border: 1px solid #e2e8f0;
-      font-size: 2rem; /* 行動版值字體大小 */
-      word-wrap: break-word; /* 長文字自動換行 */
-      overflow-wrap: break-word; /* 兼容性 */
-    }
+.card .field-value {
+  color: #2d3748; /* 與主表單文字顏色接近 */
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background-color: #f7fafc; /* 淺色背景 */
+  border: 1px solid #e2e8f0;
+  font-size: 2rem; /* 行動版值字體大小 */
+  word-wrap: break-word; /* 長文字自動換行 */
+  overflow-wrap: break-word; /* 兼容性 */
+}
 
-    /* 桌機版卡片內標籤和值字體大小 */
-    @media (min-width: 768px) {
-        .card .field-label {
-            font-size: 1.125rem; /* 桌機版標籤字體大小 */
-        }
-        .card .field-value {
-            font-size: 1.5rem; /* 桌機版值字體大小 */
-        }
+/* 桌機版卡片內標籤和值字體大小 */
+@media (min-width: 768px) {
+    .card .field-label {
+        font-size: 1.125rem; /* 桌機版標籤字體大小 */
     }
-  </style>
+    .card .field-value {
+        font-size: 1.5rem; /* 桌機版值字體大小 */
+    }
+}
+/* --- 新增的針對最後兩欄的更高權重樣式 --- */
+/* 倒數第二欄的藍色背景 */
+.card .field-value.bg-blue-override {
+    background-color: #dbeafe; /* bg-blue-100 */
+    color: #1e40af; /* text-blue-800 */
+}
+
+/* 最後一欄的動態背景色 */
+.card .field-value.bg-green-override {
+    background-color: #dcfce7; /* bg-green-100 */
+    color: #15803d; /* text-green-900 */
+}
+.card .field-value.bg-yellow-override {
+    background-color: #fef9c3; /* bg-yellow-100 */
+    color: #854d09; /* text-yellow-900 */
+}
+.card .field-value.bg-red-override {
+    background-color: #fee2e2; /* bg-red-100 */
+    color: #991b1b; /* text-red-900 */
+}
+.card .field-value.bg-gray-override {
+    background-color: #e5e7eb; /* bg-gray-200 */
+    color: #374151; /* text-gray-800 */
+}
+  </style>
 </head>
 
 <body>
-  <div class="container mx-auto p-4 sm:p-6 md:p-8 max-w-2xl">
-    <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
-      <h2 class="text-4xl sm:text-5xl font-bold text-center text-gray-800 mb-8">牙材券查詢系統</h2>
+  <div class="container mx-auto p-4 sm:p-6 md:p-8 max-w-2xl">
+    <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
+      <h2 id="title" class="text-4xl sm:text-5xl font-bold text-center text-gray-800 mb-8">牙材券查詢系統</h2> <form id="myForm" class="space-y-6">
+        <div>
+          <label for="id" class="block mb-2 text-3xl font-medium text-gray-900">姓名</label> <input type="text" name="id" id="id" class="bg-gray-50 border border-gray-300 text-gray-900 text-3xl rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-4" placeholder="請輸入您的姓名" required /> </div>
 
-      <form id="myForm" class="space-y-6">
-        <div>
-          <label for="id" class="block mb-2 text-3xl font-medium text-gray-900">姓名</label>
-          <input type="text" name="id" id="id" class="bg-gray-50 border border-gray-300 text-gray-900 text-3xl rounded-lg block w-full p-4" placeholder="請輸入您的姓名" required />
-        </div>
+        <div>
+          <label for="passwd" class="block mb-2 text-3xl font-medium text-gray-900">密碼</label>
+          <input type="password" name="passwd" id="passwd" class="bg-gray-50 border border-gray-300 text-gray-900 text-3xl rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-4" placeholder="請輸入您的密碼" required />
+        </div>
 
-        <div>
-          <label for="passwd" class="block mb-2 text-3xl font-medium text-gray-900">密碼</label>
-          <input type="password" name="passwd" id="passwd" class="bg-gray-50 border border-gray-300 text-gray-900 text-3xl rounded-lg block w-full p-4" placeholder="請輸入您的密碼" required />
-        </div>
+        <div>
+          <label for="exam" class="block mb-2 text-3xl font-medium text-gray-900">選擇項目</label>
+          <select id="exam" name="exam" class="bg-gray-50 border border-gray-300 text-gray-900 text-3xl rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-4">
+            </select>
+        </div>
 
-        <div>
-          <label for="exam" class="block mb-2 text-3xl font-medium text-gray-900">選擇項目</label>
-          <select id="exam" name="exam" class="bg-gray-50 border border-gray-300 text-gray-900 text-3xl rounded-lg block w-full p-4"></select>
-        </div>
+        <button type="submit" class="w-full text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-3xl px-6 py-4 text-center transition-colors duration-300">
+          查詢
+        </button>
+      </form>
+    </div>
 
-        <button type="submit" class="w-full text-white bg-blue-600 hover:bg-blue-700 rounded-lg text-3xl px-6 py-4">查詢</button>
-      </form>
-    </div>
+    <div id="result" class="mt-10"></div>
+  </div>
 
-    <div id="result" class="mt-10 whitespace-pre-wrap text-2xl text-gray-800"></div>
-  </div>
+  <script>
+    // --- GAS 串接相關的 JavaScript 開始 ---
+    // **重要修正：使用您最一開始提供的正確 GAS Web App URL**
+    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyh9sLiZ_b6VRiVPITYQxjDqbu3PRrpDVOS28TFsmkkTTaAy_mXTflgWVrhC7OatmHwTw/exec';
 
-  <script>
-/* --- 以下是從 GAS 讀取檔案的部分，完全保持您提供的版本 --- */
-  const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyh9sLiZ_b6VRiVPITYQxjDqbu3PRrpDVOS28TFsmkkTTaAy_mXTflgWVrhC7OatmHwTw/exec';
+    async function loadExamList() {
+      try {
+        const response = await fetch(GAS_WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'getallsheetnames' })
+        });
+        const data = await response.json();
+        const examSelect = document.getElementById('exam');
+        examSelect.innerHTML = '';
+        data.sheetNames.forEach(name => {
+          const opt = document.createElement('option');
+          opt.value = name;
+          opt.textContent = name;
+          examSelect.appendChild(opt);
+        });
+      } catch (err) {
+        alert('試卷清單載入失敗：' + err.message);
+      }
+    }
 
-  async function loadExamList() {
-    try {
-      const response = await fetch(GAS_WEB_APP_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'getallsheetnames' })
-      });
-      const data = await response.json();
-      const examSelect = document.getElementById('exam');
-      examSelect.innerHTML = '';
-      data.sheetNames.forEach(name => {
-        const opt = document.createElement('option');
-        opt.value = name;
-        opt.textContent = name;
-        examSelect.appendChild(opt);
-      });
-    } catch (err) {
-      alert('試卷清單載入失敗：' + err.message);
-    }
-  }
+    document.getElementById('myForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('id').value;
+      const passwd = document.getElementById('passwd').value;
+      const exam = document.getElementById('exam').value;
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = '<p class="text-center text-2xl text-gray-500">查詢中...</p>';
 
-  document.getElementById('myForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const id = document.getElementById('id').value;
-    const passwd = document.getElementById('passwd').value;
-    const exam = document.getElementById('exam').value;
-    const resultDiv = document.getElementById('result');
-    resultDiv.innerHTML = '<p class="text-center text-2xl text-gray-500">查詢中...</p>';
+      try {
+        const response = await fetch(GAS_WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'processForm',
+            id,
+            passwd,
+            exam
+          })
+        });
 
-    try {
-      const response = await fetch(GAS_WEB_APP_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({
-          action: 'processForm',
-          id,
-          passwd,
-          exam
-        })
-      });
+        const data = await response.json();
 
-      const data = await response.json();
+        if (data.error) {
+          resultDiv.innerHTML = '<p class="text-red-600 text-2xl">❌ ' + data.error + '</p>';
+        } else {
+            // 清除之前的結果，並開始生成新卡片
+            resultDiv.innerHTML = '';
+            data.record.forEach(row => {
+                const card = document.createElement("div");
+                card.className = "card"; // 套用 .card 樣式
 
-      if (data.error) {
-        resultDiv.innerHTML = '<p class="text-red-600 text-2xl">❌ ' + data.error + '</p>';
-      } else {
-        // 清除之前的結果，並開始生成新卡片
-        resultDiv.innerHTML = ''; 
-        data.record.forEach(row => {
-            const card = document.createElement("div");
-            card.className = "card"; // 套用 .card 樣式
+                row.forEach((cell, index) => {
+                    const label = document.createElement("div");
+                    label.className = "field-label";
+                    label.textContent = data.title[index];
 
-            row.forEach((cell, index) => {
-                  const label = document.createElement("div");
-                  label.className = "field-label";
-                  label.textContent = data.title[index];
+                    const value = document.createElement("div");
+                    value.className = "field-value";
+                    value.textContent = cell;
 
-                  const value = document.createElement("div");
-                  value.className = "field-value";
-                  value.textContent = cell;
+    // 套用最後兩欄的特殊樣式
+                    if (index === row.length - 2) {
+                        // 倒數第二欄，保持藍色背景並使用新的權重類別
+                        value.classList.add("rounded", "px-2", "py-1", "font-semibold", "bg-blue-override");
+                    }
 
-                  // 套用最後兩欄的特殊樣式
-                  if (index === row.length - 2) {
-                        value.classList.add("bg-blue-100", "text-blue-800", "rounded", "px-2", "py-1", "font-semibold");
-                  }
+                    if (index === row.length - 1) {
+                        // 清理字串，只保留數字、點、負號
+                        const cleanCell = String(cell).replace(/[^0-9.-]/g, ''); 
+                        const num = parseFloat(cleanCell);
+                        
+                        console.log(`Debug - Column ${index}: Original cell='${cell}', Cleaned cell='${cleanCell}', Parsed num=${num}`); // **調試日誌**
 
-                  if (index === row.length - 1) {
-                        const num = parseFloat(cell);
-                        value.classList.add("rounded", "px-2", "py-1", "font-semibold");
+                        value.classList.add("rounded", "px-2", "py-1", "font-semibold");
 
-                        if (isNaN(num)) {
-                            value.classList.add("bg-gray-200", "text-gray-800");
-                        } else if (num === 0) {
-                            value.classList.add("bg-yellow-100", "text-yellow-900");
-                        } else if (num < 0) {
-                            value.classList.add("bg-red-100", "text-red-900");
-                        } else {
-                            value.classList.add("bg-green-100", "text-green-900");
-                        }
-                  }
+                        if (isNaN(num)) {
+                            console.log(`Debug - Column ${index}: Is NaN, applying gray.`); // **調試日誌**
+                            value.classList.add("bg-gray-override"); // 使用更高權重的類別
+                        } else if (num === 0) {
+                            console.log(`Debug - Column ${index}: Is 0, applying yellow.`); // **調試日誌**
+                            value.classList.add("bg-yellow-override"); // 使用更高權重的類別
+                        } else if (num < 0) {
+                            console.log(`Debug - Column ${index}: Is negative, applying red.`); // **調試日誌**
+                            value.classList.add("bg-red-override"); // 使用更高權重的類別
+                        } else {
+                            console.log(`Debug - Column ${index}: Is positive, applying green.`); // **調試日誌**
+                            value.classList.add("bg-green-override"); // 使用更高權重的類別
+                        }
+                    }
 
-                  card.appendChild(label);
-                  card.appendChild(value);
-            });
+                    card.appendChild(label);
+                    card.appendChild(value);
+                });
 
-            resultDiv.appendChild(card); // 將每張卡片加入結果區
-        });
-      }
-    } catch (err) {
-      resultDiv.innerHTML = '<p class="text-red-600 text-2xl">❌ 發生錯誤：' + err.message + '</p>';
-    }
-  });
+                resultDiv.appendChild(card); // 將每張卡片加入結果區
+            });
+        }
+      } catch (err) {
+        resultDiv.innerHTML = '<p class="text-red-600 text-2xl">❌ 發生錯誤：' + err.message + '</p>';
+      }
+    });
 
-  document.addEventListener('DOMContentLoaded', loadExamList);
-/* --- GAS 相關程式碼結束 --- */
-</script>
+    document.addEventListener('DOMContentLoaded', loadExamList);
+    // --- GAS 串接相關的 JavaScript 結束 ---
+  </script>
 
 </body>
 </html>
