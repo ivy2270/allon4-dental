@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<link rel="icon" href="https://ymdd-image-tw.s3.ap-east-2.amazonaws.com/allon4-LOGO-02.png" type="image/png"/> 
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>四校牙展抽獎程式</title>
+  <style>
+    body {
+      font-family: "Microsoft JhengHei", sans-serif;
+      background: #f5f5f5;
+      padding: 30px;
+      text-align: center;
+	  background-image: linear-gradient(rgba(255,255,255,0.6), rgba(255,255,255,0.6)),
+                    url('https://ymdd-image-tw.s3.ap-east-2.amazonaws.com/file_00000000934461f78931c0c083eafdc7.png');
+      background-size: cover;
+	  background-position: center;
+	  background-repeat: no-repeat;
+	  background-attachment: fixed;
+	}
+
+/* 桌機版 (螢幕寬度 >= 768px) */
+@media (min-width: 768px) {
+  body {
+    /* 移除 URL 結尾的空格 */
+    background-image: linear-gradient(rgba(255,255,255,0.6), rgba(255,255,255,0.6)),
+                      url('https://ymdd-image-tw.s3.ap-east-2.amazonaws.com/photo_2025-07-25_22-19-42.jpg');
+  }
+}
+
+    .card {
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      padding: 20px;
+      max-width: 400px;
+      margin: 0 auto 20px auto;
+    }
+
+    input {
+      margin: 8px;
+      padding: 10px;
+      font-size: 1rem;
+      width: 80%;
+    }
+
+    .blue-button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 16px;
+      font-size: 1rem;
+      margin: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .blue-button:hover {
+      background-color: #2980b9;
+    }
+
+    .result {
+      margin-top: 20px;
+      font-size: 1.3rem;
+      color: #2c3e50;
+    }
+
+    .highlight {
+      font-size: 2rem;
+      color: #d35400;
+      font-weight: bold;
+    }
+
+    .history-card {
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      padding: 20px;
+      max-width: 600px;
+      margin: 20px auto;
+    }
+
+    #historyText {
+      font-size: 1.3rem;
+      color: #34495e;
+      word-wrap: break-word;
+    }
+
+    h1 {
+      margin-bottom: 30px;
+    }
+  </style>
+</head>
+<body>
+
+
+  <!-- 🔷 輸入卡片區 -->
+  <div class="card">
+    <h1>🎉 四校牙展抽獎程式 🎉</h1>
+    <label>起始號碼：<input type="number" id="startNum" value="1" min="1" /></label><br/>
+    <label>結束號碼：<input type="number" id="endNum" value="999" min="1" /></label><br/>
+    <label>每次抽出人數：<input type="number" id="count" value="5" min="1" /></label><br/>
+    <button class="blue-button" onclick="draw()">開始抽獎</button>
+    <button class="blue-button" onclick="exportCSV()">匯出結果</button>
+  </div>
+
+  <!-- 🔶 抽出結果區 -->
+  <div class="result" id="result"></div>
+
+  <!-- 🟩 已抽出號碼顯示卡片 -->
+  <div class="history-card">
+    <h3>🎯 已抽出號碼 🎯</h3>
+    <div id="historyText"></div>
+  </div>
+
+  <script>
+    let drawnNumbers = new Set();
+
+    function draw() {
+      const start = parseInt(document.getElementById("startNum").value, 10);
+      const end = parseInt(document.getElementById("endNum").value, 10);
+      const count = parseInt(document.getElementById("count").value, 10);
+      const maxLength = end.toString().length;
+
+      if (isNaN(start) || isNaN(end) || isNaN(count) || start > end) {
+        alert("請確認輸入的數字範圍正確！");
+        return;
+      }
+
+      const remainingPool = [];
+      for (let i = start; i <= end; i++) {
+        if (!drawnNumbers.has(i)) {
+          remainingPool.push(i);
+        }
+      }
+
+      if (remainingPool.length < count) {
+        alert(`剩餘可抽數量不足（剩 ${remainingPool.length} 筆），請調整抽出人數！`);
+        return;
+      }
+
+      const resultDiv = document.getElementById("result");
+      let animationInterval;
+      let animationCounter = 0;
+
+      animationInterval = setInterval(() => {
+        const tempDraw = [];
+        for (let i = 0; i < count; i++) {
+          const rand = remainingPool[Math.floor(Math.random() * remainingPool.length)];
+          tempDraw.push(rand.toString().padStart(maxLength, "0"));
+        }
+        resultDiv.innerHTML = `<p class="highlight">${tempDraw.join("、")}</p>`;
+        animationCounter++;
+        if (animationCounter >= 15) {
+          clearInterval(animationInterval);
+          showFinalResult();
+        }
+      }, 100);
+
+      function showFinalResult() {
+        for (let i = remainingPool.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [remainingPool[i], remainingPool[j]] = [remainingPool[j], remainingPool[i]];
+        }
+        const selected = remainingPool.slice(0, count);
+        const padded = selected.map(n => n.toString().padStart(maxLength, "0"));
+        padded.forEach(n => drawnNumbers.add(parseInt(n)));
+        resultDiv.innerHTML = `<p>抽出的號碼為：</p><p class="highlight">${padded.join("、")}</p>`;
+        updateHistory();
+      }
+    }
+
+    function updateHistory() {
+      const historyText = document.getElementById("historyText");
+      const sorted = Array.from(drawnNumbers).sort((a, b) => a - b);
+      const maxLength = document.getElementById("endNum").value.length;
+      const padded = sorted.map(n => n.toString().padStart(maxLength, "0"));
+      historyText.textContent = padded.join("、");
+    }
+
+    function exportCSV() {
+      if (drawnNumbers.size === 0) {
+        alert("尚未有抽出資料！");
+        return;
+      }
+      const sorted = Array.from(drawnNumbers).sort((a, b) => a - b);
+      const padded = sorted.map(n => n.toString().padStart(document.getElementById("endNum").value.length, "0"));
+      const csvContent = "data:text/csv;charset=utf-8," + padded.join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "抽獎結果.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  </script>
+</body>
+</html>
