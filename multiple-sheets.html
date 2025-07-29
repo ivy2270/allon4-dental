@@ -129,6 +129,28 @@ button[type="submit"] {
   font-size: 1.5rem;
 }
 
+.error-card {
+  background-color: #fee2e2; /* 淺紅背景 */
+  border: 2px solid #ef4444; /* 紅色實線邊框 */
+  color: #b91c1c; /* 深紅文字 */
+  padding: 1rem;
+  border-radius: 0.75rem;
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: bold;
+  max-width: 400px;
+  margin: 1rem auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.error-card::before {
+  content: "❌";
+  font-size: 1.5rem;
+}
+
+
 
 /* --- 新增的針對最後兩欄的更高權重樣式 --- */
 /* 倒數第二欄的藍色背景 */
@@ -216,7 +238,7 @@ button[type="submit"] {
       const passwd = document.getElementById('passwd').value;
       const exam = document.getElementById('exam').value;
       const resultDiv = document.getElementById('result');
-      resultDiv.innerHTML = '<p class="text-center text-2xl text-gray-500">查詢中...</p>';
+      resultDiv.innerHTML = '<p class="text-center text-2xl text-gray-850">查詢中...</p>';
 
       try {
         const response = await fetch(GAS_WEB_APP_URL, {
@@ -233,7 +255,8 @@ button[type="submit"] {
         const data = await response.json();
 
         if (data.error) {
-          resultDiv.innerHTML = '<p class="text-red-600 text-2xl">❌ ' + data.error + '</p>';
+  resultDiv.innerHTML = '<div class="error-card">' + data.error + '</div>';
+  
         } else {
             // 清除之前的結果，並開始生成新卡片
             resultDiv.innerHTML = '';
