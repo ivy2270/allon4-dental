@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<link rel="icon" href="https://ymdd-image-tw.s3.ap-east-2.amazonaws.com/allon4-LOGO-02.png" type="image/png"/> 
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>牙材券查詢系統</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <style>
+body {
+  font-family: 'Inter', 'Noto Sans TC', sans-serif;
+  font-size: 1.2rem;
+  background-color: #f3f4f6;
+  line-height: 1.4;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  overflow-y: auto; /* 允許滾動，避免 WebView 鍵盤頂起錯亂 */
+  background-image: linear-gradient(rgba(255,255,255,0.6), rgba(255,255,255,0.6)),
+                    url('https://ymdd-image-tw.s3.ap-east-2.amazonaws.com/file_00000000934461f78931c0c083eafdc7.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  /* 移除 background-attachment: fixed，避免焦點 Bug */
+}
+
+@media (min-width: 768px) {
+  body {
+    background-image: linear-gradient(rgba(255,255,255,0.6), rgba(255,255,255,0.6)),
+                      url('https://ymdd-image-tw.s3.ap-east-2.amazonaws.com/photo_2025-07-25_22-19-42.jpg');
+    font-size: 1.125rem;
+  }
+}
+
+input[type="text"],
+input[type="password"],
+select {
+    box-sizing: border-box;
+}
+
+button[type="submit"] {
+    font-size: 1.7rem;
+    padding: 1.2rem 2rem;
+}
+
+.card {
+  background-color: #ffffff;
+  padding: 1.5rem;
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  margin-bottom: 2rem;
+  border: 1px solid #e5e7eb;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem 1rem;
+  align-items: center;
+}
+.card .field-label {
+  font-weight: 600;
+  color: #4a5568;
+  font-size: 1.2rem;
+  text-align: left;
+  white-space: normal;
+  margin-bottom: 0.25rem;
+}
+.card .field-value {
+  color: #2d3748;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e2e8f0;
+  font-size: 1.5rem;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+    .card {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+    }
+    .card .field-label {
+        font-size: 1.125rem;
+        text-align: right;
+        padding-right: 1rem;
+        margin-bottom: 0;
+    }
+    .card .field-value {
+        font-size: 1.5rem;
+        width: auto;
+    }
+}
+
+.no-data-card {
+  background-color: #fef3c7;
+  border: 2px dashed #f59e0b;
+  color: #b45309;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: bold;
+  max-width: 400px;
+  margin: 1rem auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.no-data-card::before { content: "⚠️"; font-size: 1.5rem; }
+
+.error-card {
+  background-color: #fee2e2;
+  border: 2px solid #ef4444;
+  color: #b91c1c;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: bold;
+  max-width: 400px;
+  margin: 1rem auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.error-card::before { content: "❌"; font-size: 1.5rem; }
+
+.card .field-value.bg-blue-override { background-color: #dbeafe; color: #1e40af; }
+.card .field-value.bg-green-override { background-color: #dcfce7; color: #15803d; }
+.card .field-value.bg-yellow-override { background-color: #fef9c3; color: #854d09; }
+.card .field-value.bg-red-override { background-color: #fee2e2; color: #991b1b; }
+.card .field-value.bg-gray-override { background-color: #e5e7eb; color: #374151; }
+  </style>
+</head>
+
+<body>
+  <div class="container mx-auto p-4 sm:p-6 md:p-8 max-w-2xl">
+    <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
+      <h2 id="title" class="text-3xl sm:text-5xl font-bold text-center text-gray-800 mb-8">牙材券查詢系統</h2>
+      <form id="myForm" class="space-y-4 sm:space-y-6">
+        <div>
+          <label for="id" class="block mb-2 text-2xl font-medium text-gray-900">姓名</label>
+          <input type="text" name="id" id="id" class="bg-gray-50 border border-gray-300 text-gray-900 text-2xl rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2 sm:p-4" placeholder="請輸入您的姓名" required inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+        </div>
+
+        <div>
+          <label for="passwd" class="block mb-2 text-2xl font-medium text-gray-900">密碼（身份證後四碼）</label>
+          <input type="password" name="passwd" id="passwd" class="bg-gray-50 border border-gray-300 text-gray-900 text-2xl rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2 sm:p-4" placeholder="請輸入您的密碼" required inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+        </div>
+
+        <div>
+          <label for="exam" class="block mb-2 text-2xl font-medium text-gray-900">選擇項目</label>
+          <select id="exam" name="exam" class="bg-gray-50 border border-gray-300 text-gray-900 text-2xl rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2 sm:p-4"></select>
+        </div>
+
+        <button type="submit" class="w-full text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-2xl px-6 py-4 text-center transition-colors duration-300">
+          查詢
+        </button>
+      </form>
+    </div>
+
+    <div id="result" class="mt-10"></div>
+  </div>
+
+  <script>
+    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyn5RxyNE3mcbTyH6JxDYMqS1DEByZEbE2I3IjTRl_KFcP70yBi5rQRDy53HUnIfpCe/exec';
+
+    async function loadExamList() {
+      try {
+        const response = await fetch(GAS_WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'getallsheetnames' })
+        });
+        const data = await response.json();
+        const examSelect = document.getElementById('exam');
+        examSelect.innerHTML = '';
+        data.sheetNames.forEach(name => {
+          const opt = document.createElement('option');
+          opt.value = name;
+          opt.textContent = name;
+          examSelect.appendChild(opt);
+        });
+      } catch (err) {
+        alert('試卷清單載入失敗：' + err.message);
+      }
+    }
+
+    document.getElementById('myForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('id').value;
+      const passwd = document.getElementById('passwd').value;
+      const exam = document.getElementById('exam').value;
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = '<p class="text-center text-2xl text-gray-850">查詢中...</p>';
+
+      try {
+        const response = await fetch(GAS_WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'processForm', id, passwd, exam })
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+          resultDiv.innerHTML = '<div class="error-card">' + data.error + '</div>';
+        } else {
+          resultDiv.innerHTML = '';
+          if (!data.record || data.record.length === 0) {
+            resultDiv.innerHTML = '<div class="no-data-card">查無符合條件的資料</div>';
+            return;
+          }
+          data.record.forEach(row => {
+            const card = document.createElement("div");
+            card.className = "card";
+            row.forEach((cell, index) => {
+              const label = document.createElement("div");
+              label.className = "field-label";
+              label.textContent = data.title[index];
+
+              const value = document.createElement("div");
+              value.className = "field-value";
+              value.textContent = cell;
+
+              if (index === row.length - 2) {
+                  value.classList.add("rounded", "px-2", "py-1", "font-semibold", "bg-blue-override");
+              }
+              if (index === row.length - 1) {
+                  const cleanCell = String(cell).replace(/[^0-9.-]/g, ''); 
+                  const num = parseFloat(cleanCell);
+                  value.classList.add("rounded", "px-2", "py-1", "font-semibold");
+                  if (isNaN(num)) {
+                      value.classList.add("bg-gray-override");
+                  } else if (num === 0) {
+                      value.classList.add("bg-yellow-override");
+                  } else if (num < 0) {
+                      value.classList.add("bg-red-override");
+                  } else {
+                      value.classList.add("bg-green-override");
+                  }
+              }
+              card.appendChild(label);
+              card.appendChild(value);
+            });
+            resultDiv.appendChild(card);
+          });
+        }
+      } catch (err) {
+        resultDiv.innerHTML = '<p class="text-red-600 text-2xl">❌ 發生錯誤：' + err.message + '</p>';
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', loadExamList);
+
+    // WebView 中文輸入優化：模擬 blur→focus 幫助 IME 初始化
+    window.addEventListener('load', () => {
+      const idInput = document.getElementById('id');
+      setTimeout(() => {
+        idInput.blur();
+        setTimeout(() => idInput.focus(), 200);
+      }, 500);
+    });
+  </script>
+
+</body>
+</html>
