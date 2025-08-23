@@ -91,7 +91,10 @@ button[type="submit"] {
     }
     .card .field-value {
         font-size: 1.5rem;
-        width: auto;
+        width: 100%;              /* ✅ 改這裡，桌機也維持佔滿 */
+        word-wrap: break-word;    /* ✅ 確保長字換行 */
+        overflow-wrap: break-word;
+        word-break: break-all;    /* ✅ 保底處理長單字或數字 */
     }
 }
 
