@@ -174,123 +174,126 @@ button[type="submit"] {
     <div id="result" class="mt-10"></div>
   </div>
 
-  <script>
-    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxSWkIGYp40__ADDfgfSQAJqk_cr5vWHkngvwRE4a-EWKFp4P6nSPD8ClgrTke4JVjZ/exec';
+<script>
+  const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzAdC2YaKdxhIeEaKYhcOlNuYCR1hfzyMlXzvvWS4MfTH_GNHAKKlnWeoq-9flgq_3joA/exec';
 
-    async function loadExamList() {
-      try {
-        const response = await fetch(GAS_WEB_APP_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: 'getallsheetnames' })
-        });
-        const data = await response.json();
-        const examSelect = document.getElementById('exam');
-        examSelect.innerHTML = '';
-        data.sheetNames.forEach(name => {
-          const opt = document.createElement('option');
-          opt.value = name;
-          opt.textContent = name;
-          examSelect.appendChild(opt);
-        });
-      } catch (err) {
-        alert('試卷清單載入失敗：' + err.message);
-      }
+  async function loadExamList() {
+    try {
+      const response = await fetch(GAS_WEB_APP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'getallsheetnames' })
+      });
+      const data = await response.json();
+      const examSelect = document.getElementById('exam');
+      examSelect.innerHTML = '';
+      data.sheetNames.forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        examSelect.appendChild(opt);
+      });
+    } catch (err) {
+      alert('試卷清單載入失敗：' + err.message);
     }
+  }
 
-    document.getElementById('myForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const id = document.getElementById('id').value;
-      const passwd = document.getElementById('passwd').value;
-      const exam = document.getElementById('exam').value;
-      const resultDiv = document.getElementById('result');
-      resultDiv.innerHTML = '<p class="text-center text-2xl text-gray-850">查詢中...</p>';
+  document.getElementById('myForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('id').value;
+    const passwd = document.getElementById('passwd').value;
+    const exam = document.getElementById('exam').value;
+    const resultDiv = document.getElementById('result');
+    resultDiv.innerHTML = '<p class="text-center text-2xl text-gray-850">查詢中...</p>';
 
-      try {
-        const response = await fetch(GAS_WEB_APP_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: 'processForm', id, passwd, exam })
-        });
+    try {
+      const response = await fetch(GAS_WEB_APP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'processForm', id, passwd, exam })
+      });
 
-        const data = await response.json();
+      const data = await response.json();
 
-        if (data.error) {
-          resultDiv.innerHTML = '<div class="error-card">' + data.error + '</div>';
-        } else {
-          resultDiv.innerHTML = '';
-          if (!data.record || data.record.length === 0) {
-            resultDiv.innerHTML = '<div class="no-data-card">查無符合條件的資料</div>';
-            return;
-          }
-          data.record.forEach(row => {
-            const card = document.createElement("div");
-            card.className = "card";
-            row.forEach((cell, index) => {
-              const label = document.createElement("div");
-              label.className = "field-label";
-              label.textContent = data.title[index];
-
-              const value = document.createElement("div");
-              value.className = "field-value";
-              value.textContent = cell;
-
-              if (index === row.length - 2) {
-                  value.classList.add("rounded", "px-2", "py-1", "font-semibold", "bg-blue-override");
-              }
-              if (index === row.length - 1) {
-                  const cleanCell = String(cell).replace(/[^0-9.-]/g, ''); 
-                  const num = parseFloat(cleanCell);
-                  value.classList.add("rounded", "px-2", "py-1", "font-semibold");
-                  if (isNaN(num)) {
-                      value.classList.add("bg-gray-override");
-                  } else if (num === 0) {
-                      value.classList.add("bg-yellow-override");
-                  } else if (num < 0) {
-                      value.classList.add("bg-red-override");
-                  } else {
-                      value.classList.add("bg-green-override");
-                  }
-              }
-              card.appendChild(label);
-              card.appendChild(value);
-            });
-            resultDiv.appendChild(card);
-          });
+      if (data.error) {
+        resultDiv.innerHTML = '<div class="error-card">' + data.error + '</div>';
+      } else {
+        resultDiv.innerHTML = '';
+        if (!data.record || data.record.length === 0) {
+          resultDiv.innerHTML = '<div class="no-data-card">查無符合條件的資料</div>';
+          return;
         }
-      } catch (err) {
-        resultDiv.innerHTML = '<p class="text-red-600 text-2xl">❌ 發生錯誤：' + err.message + '</p>';
+        data.record.forEach(row => {
+          const card = document.createElement("div");
+          card.className = "card";
+          row.forEach((cell, index) => {
+            const label = document.createElement("div");
+            label.className = "field-label";
+            label.textContent = data.title[index];
+
+            const value = document.createElement("div");
+            value.className = "field-value";
+            value.textContent = cell;
+
+            // 🟡 第三欄永遠是黃色（優先於其他判斷）
+            if (index === 2) {
+              value.classList.add("rounded", "px-2", "py-1", "font-semibold", "bg-yellow-override");
+            }
+            // 🔵 倒數第二欄（排除掉第三欄）
+            else if (index === row.length - 2) {
+              value.classList.add("rounded", "px-2", "py-1", "font-semibold", "bg-blue-override");
+            }
+            // ✅ 最後一欄（排除掉第三欄）
+            else if (index === row.length - 1) {
+              const cleanCell = String(cell).replace(/[^0-9.-]/g, ''); 
+              const num = parseFloat(cleanCell);
+              value.classList.add("rounded", "px-2", "py-1", "font-semibold");
+              if (isNaN(num)) {
+                  value.classList.add("bg-gray-override");
+              } else if (num === 0) {
+                  value.classList.add("bg-yellow-override");
+              } else if (num < 0) {
+                  value.classList.add("bg-red-override");
+              } else {
+                  value.classList.add("bg-green-override");
+              }
+            }
+            card.appendChild(label);
+            card.appendChild(value);
+          });
+          resultDiv.appendChild(card);
+        });
       }
-    });
+    } catch (err) {
+      resultDiv.innerHTML = '<p class="text-red-600 text-2xl">❌ 發生錯誤：' + err.message + '</p>';
+    }
+  });
 
-    document.addEventListener('DOMContentLoaded', loadExamList);
+  document.addEventListener('DOMContentLoaded', loadExamList);
 
-    // WebView 中文輸入優化：模擬 blur→focus 幫助 IME 初始化
-    window.addEventListener('load', () => {
-      const idInput = document.getElementById('id');
-      setTimeout(() => {
-        idInput.blur();
-        setTimeout(() => idInput.focus(), 200);
-      }, 500);
-    });
-	
-		// 密碼顯示/隱藏功能
-    const togglePassword = document.getElementById('togglePassword');
-    const passwordInput = document.getElementById('passwd');
-    const eyeIconOpen = document.getElementById('eyeIconOpen');
-    const eyeIconClosed = document.getElementById('eyeIconClosed');
+  // WebView 中文輸入優化
+  window.addEventListener('load', () => {
+    const idInput = document.getElementById('id');
+    setTimeout(() => {
+      idInput.blur();
+      setTimeout(() => idInput.focus(), 200);
+    }, 500);
+  });
 
-    togglePassword.addEventListener('click', function () {
-      const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-      passwordInput.setAttribute('type', type);
+  // 密碼顯示/隱藏功能
+  const togglePassword = document.getElementById('togglePassword');
+  const passwordInput = document.getElementById('passwd');
+  const eyeIconOpen = document.getElementById('eyeIconOpen');
+  const eyeIconClosed = document.getElementById('eyeIconClosed');
 
-      // 切換眼睛圖標的顯示狀態：
-      // 如果目前是密碼模式（閉眼狀態），切換為文字模式（睜眼狀態）
-      // 如果目前是文字模式（睜眼狀態），切換為密碼模式（閉眼狀態）
-      eyeIconClosed.classList.toggle('hidden'); // 閉眼圖標的顯示/隱藏狀態與當前密碼模式相反
-      eyeIconOpen.classList.toggle('hidden');   // 睜眼圖標的顯示/隱藏狀態與當前密碼模式相同
-    });
-  </script>
+  togglePassword.addEventListener('click', function () {
+    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+    passwordInput.setAttribute('type', type);
+    eyeIconClosed.classList.toggle('hidden');
+    eyeIconOpen.classList.toggle('hidden');
+  });
+</script>
+
 
 </body>
 </html>
