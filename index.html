@@ -178,7 +178,7 @@ button[type="submit"] {
   </div>
 
 <script>
-  const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzKUfNHwS8IE8ytDvqd_Ywqh9XzEYkPMrqp9YiBUF2Qmy_BZKA4MW9IV7L4vl2mkGWVVQ/exec';
+  const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbymXKQjuBWlLPuhtx1yPusIrNwCwNDQLdhUL-nL4b7WqlkboMVXe-5xCzGrHMhEt7z6CA/exec';
 
   async function loadExamList() {
     try {
@@ -239,7 +239,7 @@ button[type="submit"] {
             value.textContent = cell;
 
             // 🟡 第三欄永遠是黃色（優先於其他判斷）
-            if (index === 2) {
+            if (index === 1) {
               value.classList.add("rounded", "px-2", "py-1", "font-semibold", "bg-yellow-override");
             }
             // 🔵 倒數第二欄（排除掉第三欄）
