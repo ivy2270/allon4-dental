@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>正在轉址...</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            text-align: center;
+            padding-top: 50px;
+        }
+    </style>
+</head>
+<body>
+    <h1>正在轉跳中...</h1>
+    <p>請稍候，我們將為您導向至醫師頁面。</p>
+
+    <script>
+        // 設定你的 Apps Script 主專案最新部署網址
+        const LATEST_MAIN_APP_URL = "https://script.google.com/macros/s/AKfycbytHLUF_DjVa50ayEaJMu9hNtKvdVXQYION6RxOPkC6Hp_1qJGFaTpjKm3qCF9ge5F2oA/exec";
+
+        // 讀取網址中的參數
+        const params = new URLSearchParams(window.location.search);
+        const doctorName = params.get('name');
+
+        if (doctorName) {
+            // 建構完整的轉址網址
+            const redirectUrl = LATEST_MAIN_APP_URL + '?name=' + encodeURIComponent(doctorName);
+            
+            // 執行轉址
+            window.location.href = redirectUrl;
+        } else {
+            // 如果沒有參數，顯示錯誤
+            document.querySelector('h1').innerText = "轉址失敗";
+            document.querySelector('p').innerText = "網址不完整，請確認 QR Code 是否正確。";
+        }
+    </script>
+</body>
+</html>
