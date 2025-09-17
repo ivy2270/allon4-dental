@@ -97,12 +97,10 @@
     const stopScanBtn = document.getElementById('stop-scan-btn');
     const loadingMessage = document.getElementById('loading-message');
     
-    // 設定掃描器的配置
     const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 
     let currentCameraId = null;
 
-    // 啟動掃描功能
     async function startScanning() {
         startScanBtn.disabled = true;
         nameDisplay.innerText = '正在啟動相機...';
@@ -110,12 +108,10 @@
         try {
             const devices = await Html5Qrcode.getCameras();
             if (devices && devices.length) {
-                // 找到後置鏡頭（如果存在）
                 const backCamera = devices.find(device => device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('後置'));
                 const cameraId = backCamera ? backCamera.id : devices[0].id;
                 currentCameraId = cameraId;
 
-                // 啟動掃描
                 await html5QrCode.start({ deviceId: { exact: cameraId } }, config, onScanSuccess);
                 nameDisplay.innerText = '請對準 QR Code';
                 stopScanBtn.disabled = false;
@@ -130,7 +126,6 @@
         }
     }
 
-    // 掃描成功後的回調函式
     const onScanSuccess = (decodedText, decodedResult) => {
         console.log(`QR Code 掃描成功: ${decodedText}`);
         
@@ -138,14 +133,12 @@
         checkinBtn.disabled = false;
         checkoutBtn.disabled = false;
 
-        // 停止掃描
         html5QrCode.stop().catch(err => {
             console.error("停止掃描失敗: ", err);
         });
         startScanBtn.disabled = false;
     };
     
-    // 停止掃描功能
     function stopScanning() {
         stopScanBtn.disabled = true;
         html5QrCode.stop().then(() => {
@@ -159,54 +152,29 @@
         });
     }
 
-    // --- 傳送資料到 Google Apps Script 後端 ---
-    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwRyVvAhgOnzxWfpqQXx9_FIvK0UUO7A2yFFHUeMiB_g0WvoAGAOVrXKwzAysA7Ya85/exec";
+    // --- 新的轉址邏輯 ---
+    const GAS_WEB_APP_URL = "你的 Google Apps Script 部署網址";
 
-    async function sendDataToGas(action) {
+    async function redirectWithData(action) {
         const name = nameDisplay.innerText;
         if (!name || name === '請對準 QR Code' || name === '請點擊「啟動掃描」') {
             alert('請先掃描 QR Code 取得醫師姓名。');
             return;
         }
-
-        loadingMessage.style.display = 'block';
-
-        try {
-            const response = await fetch(GAS_WEB_APP_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ name: name, action: action })
-            });
-
-            const result = await response.json();
-
-            loadingMessage.style.display = 'none';
-            if (result.success) {
-                alert(result.message);
-                // 成功後清空並重新啟用掃描按鈕
-                nameDisplay.innerText = '請點擊「啟動掃描」';
-                checkinBtn.disabled = true;
-                checkoutBtn.disabled = true;
-                startScanBtn.disabled = false; // 讓使用者可以再次啟動
-            } else {
-                alert(`操作失敗: ${result.error}`);
-            }
-        } catch (error) {
-            loadingMessage.style.display = 'none';
-            alert('發生錯誤，請稍後再試。');
-            console.error('API 呼叫失敗:', error);
-        }
+        
+        // 轉址到 GAS 中繼頁面，並帶上姓名與動作參數
+        const url = `${GAS_WEB_APP_URL}?name=${encodeURIComponent(name)}&action=${action}`;
+        window.location.href = url;
     }
 
     // 綁定按鈕事件
     startScanBtn.addEventListener('click', startScanning);
     stopScanBtn.addEventListener('click', stopScanning);
-    checkinBtn.addEventListener('click', () => sendDataToGas('checkin'));
-    checkoutBtn.addEventListener('click', () => sendDataToGas('checkout'));
+    checkinBtn.addEventListener('click', () => redirectWithData('checkin'));
+    checkoutBtn.addEventListener('click', () => redirectWithData('checkout'));
 </script>
 
 </body>
 </html>
+
 
