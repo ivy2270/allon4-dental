@@ -10,6 +10,7 @@
             text-align: center;
             padding: 20px;
             background-color: #f4f4f4;
+            color: #333;
         }
         .container {
             max-width: 500px;
@@ -28,30 +29,35 @@
         #scanned-name-display {
             font-size: 24px;
             font-weight: bold;
-            color: #007bff;
+            color: #0056b3;
             margin: 20px 0;
+            min-height: 28px; /* 確保沒有內容時也有空間 */
+        }
+        .control-group {
+            margin-bottom: 20px;
+        }
+        .control-group button, .button-group button {
+            padding: 12px 25px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            margin: 5px;
         }
         .button-group {
             display: flex;
             justify-content: space-around;
             margin-top: 20px;
         }
-        .button-group button {
-            padding: 15px 30px;
-            font-size: 18px;
-            border: none;
-            border-radius: 5px;
-            color: white;
-            cursor: pointer;
-            width: 45%;
+        #start-scan-btn, #stop-scan-btn {
+            background-color: #6c757d;
         }
-        #checkin-btn { background-color: #4CAF50; }
-        #checkout-btn { background-color: #f44336; }
-        #stop-scan-btn {
-            background-color: #666;
-            margin-top: 10px;
-            width: 95%;
+        #start-scan-btn {
+            background-color: #28a745;
         }
+        #checkin-btn { background-color: #007bff; }
+        #checkout-btn { background-color: #dc3545; }
         #loading-message {
             display: none;
             margin-top: 20px;
@@ -65,78 +71,104 @@
 <div class="container">
     <h1>醫師簽到/退系統</h1>
 
+    <div class="control-group">
+        <button id="start-scan-btn">啟動掃描</button>
+        <button id="stop-scan-btn">停止掃描</button>
+    </div>
+
     <div id="reader"></div>
     
-    <div id="scanned-name-display"></div>
+    <div id="scanned-name-display">請點擊「啟動掃描」</div>
     
     <div class="button-group">
         <button id="checkin-btn" disabled>簽到</button>
         <button id="checkout-btn" disabled>簽退</button>
     </div>
-    
-    <button id="stop-scan-btn">停止掃描</button>
 
     <div id="loading-message">處理中...</div>
 </div>
 
 <script>
     const html5QrCode = new Html5Qrcode("reader");
-    const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+    const nameDisplay = document.getElementById('scanned-name-display');
+    const checkinBtn = document.getElementById('checkin-btn');
+    const checkoutBtn = document.getElementById('checkout-btn');
+    const startScanBtn = document.getElementById('start-scan-btn');
+    const stopScanBtn = document.getElementById('stop-scan-btn');
+    const loadingMessage = document.getElementById('loading-message');
+    
+    // 設定掃描器的配置
+    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+    let currentCameraId = null;
+
+    // 啟動掃描功能
+    async function startScanning() {
+        startScanBtn.disabled = true;
+        nameDisplay.innerText = '正在啟動相機...';
+        
+        try {
+            const devices = await Html5Qrcode.getCameras();
+            if (devices && devices.length) {
+                // 找到後置鏡頭（如果存在）
+                const backCamera = devices.find(device => device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('後置'));
+                const cameraId = backCamera ? backCamera.id : devices[0].id;
+                currentCameraId = cameraId;
+
+                // 啟動掃描
+                await html5QrCode.start({ deviceId: { exact: cameraId } }, config, onScanSuccess);
+                nameDisplay.innerText = '請對準 QR Code';
+                stopScanBtn.disabled = false;
+            } else {
+                alert('找不到任何相機裝置。');
+                startScanBtn.disabled = false;
+            }
+        } catch (err) {
+            alert('無法啟動相機。請檢查權限設定或裝置是否支援。');
+            console.error('相機啟動失敗:', err);
+            startScanBtn.disabled = false;
+        }
+    }
+
+    // 掃描成功後的回調函式
+    const onScanSuccess = (decodedText, decodedResult) => {
         console.log(`QR Code 掃描成功: ${decodedText}`);
         
-        // 將掃描到的文字顯示在畫面上
-        const nameDisplay = document.getElementById('scanned-name-display');
         nameDisplay.innerText = decodedText;
-        
-        // 啟用簽到和簽退按鈕
-        document.getElementById('checkin-btn').disabled = false;
-        document.getElementById('checkout-btn').disabled = false;
+        checkinBtn.disabled = false;
+        checkoutBtn.disabled = false;
 
         // 停止掃描
         html5QrCode.stop().catch(err => {
             console.error("停止掃描失敗: ", err);
         });
+        startScanBtn.disabled = false;
     };
-
-    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-
-    // 啟動相機掃描
-    Html5Qrcode.getCameras().then(devices => {
-        if (devices && devices.length) {
-            const cameraId = devices[0].id;
-            html5QrCode.start({ deviceId: { exact: cameraId } }, config, qrCodeSuccessCallback)
-                .catch(err => {
-                    alert('無法啟動相機。請檢查權限設定或裝置是否支援。');
-                    console.error('相機啟動失敗:', err);
-                });
-        }
-    }).catch(err => {
-        alert('無法取得相機裝置。');
-        console.error('取得相機失敗:', err);
-    });
     
-    document.getElementById('stop-scan-btn').addEventListener('click', () => {
+    // 停止掃描功能
+    function stopScanning() {
+        stopScanBtn.disabled = true;
         html5QrCode.stop().then(() => {
             console.log("掃描已停止。");
-            document.getElementById('checkin-btn').disabled = true;
-            document.getElementById('checkout-btn').disabled = true;
-            document.getElementById('scanned-name-display').innerText = '';
+            nameDisplay.innerText = '已停止掃描';
+            checkinBtn.disabled = true;
+            checkoutBtn.disabled = true;
+            startScanBtn.disabled = false;
         }).catch(err => {
             console.error("停止掃描失敗: ", err);
         });
-    });
+    }
 
-    // --- 傳送資料到 Google Apps Script ---
+    // --- 傳送資料到 Google Apps Script 後端 ---
     const GAS_WEB_APP_URL = "你的 Google Apps Script 部署網址";
 
     async function sendDataToGas(action) {
-        const name = document.getElementById('scanned-name-display').innerText;
-        if (!name) {
+        const name = nameDisplay.innerText;
+        if (!name || name === '請對準 QR Code' || name === '請點擊「啟動掃描」') {
             alert('請先掃描 QR Code 取得醫師姓名。');
             return;
         }
 
-        const loadingMessage = document.getElementById('loading-message');
         loadingMessage.style.display = 'block';
 
         try {
@@ -153,11 +185,11 @@
             loadingMessage.style.display = 'none';
             if (result.success) {
                 alert(result.message);
-                // 成功後清空並重啟掃描器
-                document.getElementById('scanned-name-display').innerText = '';
-                document.getElementById('checkin-btn').disabled = true;
-                document.getElementById('checkout-btn').disabled = true;
-                html5QrCode.start({ deviceId: { exact: devices[0].id } }, config, qrCodeSuccessCallback);
+                // 成功後清空並重新啟用掃描按鈕
+                nameDisplay.innerText = '請點擊「啟動掃描」';
+                checkinBtn.disabled = true;
+                checkoutBtn.disabled = true;
+                startScanBtn.disabled = false; // 讓使用者可以再次啟動
             } else {
                 alert(`操作失敗: ${result.error}`);
             }
@@ -168,8 +200,11 @@
         }
     }
 
-    document.getElementById('checkin-btn').addEventListener('click', () => sendDataToGas('checkin'));
-    document.getElementById('checkout-btn').addEventListener('click', () => sendDataToGas('checkout'));
+    // 綁定按鈕事件
+    startScanBtn.addEventListener('click', startScanning);
+    stopScanBtn.addEventListener('click', stopScanning);
+    checkinBtn.addEventListener('click', () => sendDataToGas('checkin'));
+    checkoutBtn.addEventListener('click', () => sendDataToGas('checkout'));
 </script>
 
 </body>
