@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>醫師簽到/退系統</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 500px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        #reader {
+            width: 100%;
+        }
+        #scanned-name-display {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+            margin: 20px 0;
+        }
+        .button-group {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        .button-group button {
+            padding: 15px 30px;
+            font-size: 18px;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            width: 45%;
+        }
+        #checkin-btn { background-color: #4CAF50; }
+        #checkout-btn { background-color: #f44336; }
+        #stop-scan-btn {
+            background-color: #666;
+            margin-top: 10px;
+            width: 95%;
+        }
+        #loading-message {
+            display: none;
+            margin-top: 20px;
+            color: #555;
+        }
+    </style>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+</head>
+<body>
+
+<div class="container">
+    <h1>醫師簽到/退系統</h1>
+
+    <div id="reader"></div>
+    
+    <div id="scanned-name-display"></div>
+    
+    <div class="button-group">
+        <button id="checkin-btn" disabled>簽到</button>
+        <button id="checkout-btn" disabled>簽退</button>
+    </div>
+    
+    <button id="stop-scan-btn">停止掃描</button>
+
+    <div id="loading-message">處理中...</div>
+</div>
+
+<script>
+    const html5QrCode = new Html5Qrcode("reader");
+    const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+        console.log(`QR Code 掃描成功: ${decodedText}`);
+        
+        // 將掃描到的文字顯示在畫面上
+        const nameDisplay = document.getElementById('scanned-name-display');
+        nameDisplay.innerText = decodedText;
+        
+        // 啟用簽到和簽退按鈕
+        document.getElementById('checkin-btn').disabled = false;
+        document.getElementById('checkout-btn').disabled = false;
+
+        // 停止掃描
+        html5QrCode.stop().catch(err => {
+            console.error("停止掃描失敗: ", err);
+        });
+    };
+
+    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+    // 啟動相機掃描
+    Html5Qrcode.getCameras().then(devices => {
+        if (devices && devices.length) {
+            const cameraId = devices[0].id;
+            html5QrCode.start({ deviceId: { exact: cameraId } }, config, qrCodeSuccessCallback)
+                .catch(err => {
+                    alert('無法啟動相機。請檢查權限設定或裝置是否支援。');
+                    console.error('相機啟動失敗:', err);
+                });
+        }
+    }).catch(err => {
+        alert('無法取得相機裝置。');
+        console.error('取得相機失敗:', err);
+    });
+    
+    document.getElementById('stop-scan-btn').addEventListener('click', () => {
+        html5QrCode.stop().then(() => {
+            console.log("掃描已停止。");
+            document.getElementById('checkin-btn').disabled = true;
+            document.getElementById('checkout-btn').disabled = true;
+            document.getElementById('scanned-name-display').innerText = '';
+        }).catch(err => {
+            console.error("停止掃描失敗: ", err);
+        });
+    });
+
+    // --- 傳送資料到 Google Apps Script ---
+    const GAS_WEB_APP_URL = "你的 Google Apps Script 部署網址";
+
+    async function sendDataToGas(action) {
+        const name = document.getElementById('scanned-name-display').innerText;
+        if (!name) {
+            alert('請先掃描 QR Code 取得醫師姓名。');
+            return;
+        }
+
+        const loadingMessage = document.getElementById('loading-message');
+        loadingMessage.style.display = 'block';
+
+        try {
+            const response = await fetch(GAS_WEB_APP_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name: name, action: action })
+            });
+
+            const result = await response.json();
+
+            loadingMessage.style.display = 'none';
+            if (result.success) {
+                alert(result.message);
+                // 成功後清空並重啟掃描器
+                document.getElementById('scanned-name-display').innerText = '';
+                document.getElementById('checkin-btn').disabled = true;
+                document.getElementById('checkout-btn').disabled = true;
+                html5QrCode.start({ deviceId: { exact: devices[0].id } }, config, qrCodeSuccessCallback);
+            } else {
+                alert(`操作失敗: ${result.error}`);
+            }
+        } catch (error) {
+            loadingMessage.style.display = 'none';
+            alert('發生錯誤，請稍後再試。');
+            console.error('API 呼叫失敗:', error);
+        }
+    }
+
+    document.getElementById('checkin-btn').addEventListener('click', () => sendDataToGas('checkin'));
+    document.getElementById('checkout-btn').addEventListener('click', () => sendDataToGas('checkout'));
+</script>
+
+</body>
+</html>
