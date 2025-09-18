@@ -126,13 +126,32 @@
         }
     }
 
+    // 掃描成功後的回調函式
     const onScanSuccess = (decodedText, decodedResult) => {
         console.log(`QR Code 掃描成功: ${decodedText}`);
         
-        nameDisplay.innerText = decodedText;
+        // --- 這裡開始是新的解析邏輯 ---
+        const params = new URLSearchParams(decodedText);
+        const name = params.get('name');
+        const id = params.get('id');
+
+        // 將掃描到的資訊顯示在畫面上
+        if (name) {
+            nameDisplay.innerText = name;
+        } else {
+            nameDisplay.innerText = '錯誤：QR Code 格式不正確';
+        }
+
+        // 將 ID 和 NAME 儲存到按鈕的 data 屬性中
+        checkinBtn.dataset.id = id;
+        checkinBtn.dataset.name = name;
+        checkoutBtn.dataset.id = id;
+        checkoutBtn.dataset.name = name;
+        
         checkinBtn.disabled = false;
         checkoutBtn.disabled = false;
 
+        // 停止掃描
         html5QrCode.stop().catch(err => {
             console.error("停止掃描失敗: ", err);
         });
@@ -153,29 +172,32 @@
     }
 
     // --- 新的轉址邏輯 ---
-    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycby4Nvlb2PnGirJcv0ltZcxHGcLZHvBPk_VrdQAnfilGb5of1ViKEMCxH5_NpJRzqAlnow/exec";
+    const GAS_WEB_APP_URL = "你的 Google Apps Script 部署網址";
 
     async function redirectWithData(action) {
-        const name = nameDisplay.innerText;
-        if (!name || name === '請對準 QR Code' || name === '請點擊「啟動掃描」') {
-            alert('請先掃描 QR Code 取得醫師姓名。');
+        const name = event.target.dataset.name;
+        const id = event.target.dataset.id;
+
+        if (!name || !id) {
+            alert('請先掃描 QR Code 取得醫師資料。');
             return;
         }
         
-        // 轉址到 GAS 中繼頁面，並帶上姓名與動作參數
-        const url = `${GAS_WEB_APP_URL}?name=${encodeURIComponent(name)}&action=${action}`;
+        // 轉址到 GAS 中繼頁面，並帶上姓名、編號與動作參數
+        const url = `${GAS_WEB_APP_URL}?id=${encodeURIComponent(id)}&name=${encodeURIComponent(name)}&action=${action}`;
         window.location.href = url;
     }
 
     // 綁定按鈕事件
     startScanBtn.addEventListener('click', startScanning);
     stopScanBtn.addEventListener('click', stopScanning);
-    checkinBtn.addEventListener('click', () => redirectWithData('checkin'));
-    checkoutBtn.addEventListener('click', () => redirectWithData('checkout'));
+    checkinBtn.addEventListener('click', redirectWithData);
+    checkoutBtn.addEventListener('click', redirectWithData);
 </script>
 
 </body>
 </html>
+
 
 
 
