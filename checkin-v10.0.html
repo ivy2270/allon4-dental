@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>醫師簽到/退系統</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            max-width: 500px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        #reader {
+            width: 100%;
+        }
+        #scanned-info-display {
+            font-size: 20px;
+            font-weight: bold;
+            color: #0056b3;
+            margin: 20px 0;
+            min-height: 24px;
+        }
+        #scanned-info-display div {
+            margin: 5px 0;
+        }
+        .control-group {
+            margin-bottom: 20px;
+        }
+        .control-group button, .button-group button {
+            padding: 12px 25px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button-group {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        #start-scan-btn, #stop-scan-btn {
+            background-color: #6c757d;
+        }
+        #start-scan-btn {
+            background-color: #28a745;
+        }
+        #checkin-btn { background-color: #007bff; }
+        #checkout-btn { background-color: #dc3545; }
+        #loading-message {
+            display: none;
+            margin-top: 20px;
+            color: #555;
+        }
+    </style>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+</head>
+<body>
+
+<div class="container">
+    <h1>醫師簽到/退系統</h1>
+
+    <div class="control-group">
+        <button id="start-scan-btn">啟動掃描</button>
+        <button id="stop-scan-btn">停止掃描</button>
+    </div>
+
+    <div id="reader"></div>
+    
+    <div id="scanned-info-display">請點擊「啟動掃描」</div>
+    
+    <div class="button-group">
+        <button id="checkin-btn" disabled>簽到</button>
+        <button id="checkout-btn" disabled>簽退</button>
+    </div>
+
+    <div id="loading-message">處理中...</div>
+</div>
+
+<script>
+    const html5QrCode = new Html5Qrcode("reader");
+    const infoDisplay = document.getElementById('scanned-info-display');
+    const checkinBtn = document.getElementById('checkin-btn');
+    const checkoutBtn = document.getElementById('checkout-btn');
+    const startScanBtn = document.getElementById('start-scan-btn');
+    const stopScanBtn = document.getElementById('stop-scan-btn');
+    const loadingMessage = document.getElementById('loading-message');
+    
+    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+    let currentCameraId = null;
+
+    async function startScanning() {
+        startScanBtn.disabled = true;
+        infoDisplay.innerHTML = '正在啟動相機...';
+        
+        try {
+            const devices = await Html5Qrcode.getCameras();
+            if (devices && devices.length) {
+                const backCamera = devices.find(device => device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('後置'));
+                const cameraId = backCamera ? backCamera.id : devices[0].id;
+                currentCameraId = cameraId;
+
+                await html5QrCode.start({ deviceId: { exact: cameraId } }, config, onScanSuccess);
+                infoDisplay.innerHTML = '請對準 QR Code';
+                stopScanBtn.disabled = false;
+            } else {
+                alert('找不到任何相機裝置。');
+                startScanBtn.disabled = false;
+            }
+        } catch (err) {
+            alert('無法啟動相機。請檢查權限設定或裝置是否支援。');
+            console.error('相機啟動失敗:', err);
+            startScanBtn.disabled = false;
+        }
+    }
+
+    const onScanSuccess = (decodedText, decodedResult) => {
+        console.log(`QR Code 掃描成功: ${decodedText}`);
+        
+        // 核心修改：解析 ID 和 NAME
+        const params = new URLSearchParams(decodedText);
+        const name = params.get('name');
+        const id = params.get('id');
+
+        if (name && id) {
+            infoDisplay.innerHTML = `<div>編號：${id}</div><div>姓名：${name}</div>`;
+            checkinBtn.dataset.id = id;
+            checkinBtn.dataset.name = name;
+            checkoutBtn.dataset.id = id;
+            checkoutBtn.dataset.name = name;
+            
+            checkinBtn.disabled = false;
+            checkoutBtn.disabled = false;
+        } else {
+            infoDisplay.innerHTML = '<div>錯誤：QR Code 格式不正確</div>';
+        }
+
+        html5QrCode.stop().catch(err => {
+            console.error("停止掃描失敗: ", err);
+        });
+        startScanBtn.disabled = false;
+    };
+    
+    function stopScanning() {
+        stopScanBtn.disabled = true;
+        html5QrCode.stop().then(() => {
+            console.log("掃描已停止。");
+            infoDisplay.innerHTML = '已停止掃描';
+            checkinBtn.disabled = true;
+            checkoutBtn.disabled = true;
+            startScanBtn.disabled = false;
+        }).catch(err => {
+            console.error("停止掃描失敗: ", err);
+        });
+    }
+
+    // --- 轉址邏輯 ---
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwigR5nTfyPddNzPWd0-ZTd6mXdzk-Fsg5uHRiFL6aFM9vhzPen100aPgGNyDrzKRbK/exec";
+
+    async function redirectWithData(action) {
+        const name = event.target.dataset.name;
+        const id = event.target.dataset.id;
+
+        if (!name || !id) {
+            alert('請先掃描 QR Code 取得醫師資料。');
+            return;
+        }
+        
+        const url = `${GAS_WEB_APP_URL}?id=${encodeURIComponent(id)}&name=${encodeURIComponent(name)}&action=${action}`;
+        window.location.href = url;
+    }
+
+    startScanBtn.addEventListener('click', startScanning);
+    stopScanBtn.addEventListener('click', stopScanning);
+    checkinBtn.addEventListener('click', () => redirectWithData('checkin'));
+    checkoutBtn.addEventListener('click', () => redirectWithData('checkout'));
+</script>
+
+</body>
+</html>
+
+
+
+
+
+
+
+
+
