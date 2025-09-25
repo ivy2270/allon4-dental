@@ -3,135 +3,158 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>醫師牙材券消費系統 - 掃描</title>
+  <title>牙材券消費登錄</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 20px;
-      background: #f4f6f8;
-      color: #333;
+      font-family: 'Inter','Noto Sans TC',sans-serif;
+      background: #f0f2f5;
+      margin: 0;
+      padding: 0;
     }
     .container {
       max-width: 500px;
-      margin: auto;
+      margin: 40px auto;
       background: #fff;
       padding: 20px;
       border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
-    h1 {
-      font-size: 1.6rem;
-      margin-bottom: 15px;
-      color: #2c3e50;
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #333;
     }
-    video {
+    label {
+      display: block;
+      margin-top: 12px;
+      font-weight: 600;
+    }
+    input, select, button {
       width: 100%;
-      border-radius: 12px;
-      margin: 10px 0;
-    }
-    .control-group {
-      margin-top: 15px;
+      padding: 10px;
+      margin-top: 6px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 1rem;
     }
     button {
-      padding: 10px 18px;
-      font-size: 1rem;
-      margin: 5px;
+      background: #4caf50;
+      color: #fff;
       border: none;
-      border-radius: 8px;
       cursor: pointer;
-      background: #3498db;
-      color: white;
-      transition: background 0.2s;
+      margin-top: 20px;
     }
     button:hover {
-      background: #2980b9;
+      background: #43a047;
     }
-    #gotoFormBtn {
-      background: #27ae60;
-    }
-    #gotoFormBtn:hover {
-      background: #1e8449;
-    }
-    #vendor-display {
-      margin-bottom: 15px;
-      font-size: 18px;
+    #vendorDisplay {
+      margin-bottom: 10px;
       font-weight: bold;
-      color: #444;
+      color: #2e7d32;
+      text-align: center;
+    }
+    #message {
+      margin-top: 20px;
+      text-align: center;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>醫師牙材券消費系統</h1>
-    <!-- 廠商名稱顯示 -->
-    <div id="vendor-display"></div>
+    <h2>牙材券消費登錄</h2>
 
-    <div class="control-group">
-      <button id="start-scan-btn">啟動掃描</button>
-      <button id="stop-scan-btn">停止掃描</button>
-    </div>
-    <video id="preview"></video>
-    <div class="control-group">
-      <button id="gotoFormBtn">前往消費表單</button>
-    </div>
+    <!-- 顯示目前的廠商（網址有帶 vendor 參數時才會出現） -->
+    <div id="vendorDisplay"></div>
+
+    <form id="voucherForm">
+      <label for="doctor">醫師姓名：</label>
+      <input type="text" id="doctor" name="doctor" required>
+
+      <label for="voucher">牙材卷號：</label>
+      <input type="text" id="voucher" name="voucher" required>
+
+      <label for="amount">使用金額：</label>
+      <input type="number" id="amount" name="amount" required>
+
+      <label for="phone">手機：</label>
+      <input type="text" id="phone" name="phone" required>
+
+      <label for="vendor">廠商：</label>
+      <select id="vendor" name="vendor" required>
+        <option value="">請選擇廠商</option>
+        <option value="A公司">A公司</option>
+        <option value="B公司">B公司</option>
+        <option value="C公司">C公司</option>
+      </select>
+
+      <label for="note">備註：</label>
+      <input type="text" id="note" name="note">
+
+      <label for="datetime">日期時間：</label>
+      <input type="datetime-local" id="datetime" name="datetime" required>
+
+      <button type="submit">送出</button>
+    </form>
+    <div id="message"></div>
   </div>
 
-  <script src="https://unpkg.com/instascan@1.0.0/umd/instascan.min.js"></script>
   <script>
-    const CONSUMPTION_GAS_URL = "https://script.google.com/macros/s/AKfycby_8BPFqOxkvP92z0-DdRgZfk7FEw3c2v6oiA9rhVJtaN0SOnGLsuUVCcXP7uy0qnXoAg/exec"; // ←請換成實際的 GAS Web App URL
-    const gotoFormBtn = document.getElementById("gotoFormBtn");
+    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwv0d4S-MFwN-qM9dPYIltM4zxFgjljpZnP9-AnqFbcNZi2xYjWm9MFL4rREEwTHI6N/exec';
+
+    // ===== vendor 處理邏輯 =====
     const urlParams = new URLSearchParams(window.location.search);
-    const vendorCode = urlParams.get("vendor") || "";
+    const vendorParam = urlParams.get('vendor');
+    const vendorSelect = document.getElementById('vendor');
+    const vendorDisplay = document.getElementById('vendorDisplay');
 
-    // 顯示廠商名稱
-    const vendorDisplay = document.getElementById("vendor-display");
-    if (vendorCode) {
-      vendorDisplay.textContent = `目前廠商：${vendorCode}`;
+    if (vendorParam) {
+      let found = false;
+      for (let option of vendorSelect.options) {
+        if (option.value === vendorParam) {
+          option.selected = true;
+          found = true;
+          break;
+        }
+      }
+      if (found) {
+        vendorDisplay.textContent = `目前廠商：${vendorParam}`;
+      } else {
+        vendorDisplay.textContent = `網址帶的廠商「${vendorParam}」不在選單中`;
+      }
+    } else {
+      vendorSelect.value = "";
+      vendorDisplay.textContent = "";
     }
 
-    let scanner;
+    // ===== 表單送出處理 =====
+    document.getElementById('voucherForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const formData = new FormData(this);
+      const data = Object.fromEntries(formData.entries());
 
-    document.getElementById("start-scan-btn").addEventListener("click", () => {
-      scanner = new Instascan.Scanner({ video: document.getElementById("preview") });
-      scanner.addListener("scan", function (content) {
-        try {
-          const params = new URLSearchParams(content.split("?")[1]);
-          gotoFormBtn.dataset.name = params.get("name");
-          gotoFormBtn.dataset.id = params.get("id");
-          alert("成功掃描：" + gotoFormBtn.dataset.name);
-        } catch (err) {
-          alert("QR Code 格式錯誤");
-        }
-      });
-      Instascan.Camera.getCameras().then(function (cameras) {
-        if (cameras.length > 0) {
-          scanner.start(cameras[0]);
+      try {
+        const response = await fetch(GAS_WEB_APP_URL, {
+          method: 'POST',
+          body: JSON.stringify(data),
+          headers: { 'Content-Type': 'text/plain' }
+        });
+        const result = await response.json();
+        if (result.success) {
+          document.getElementById('message').textContent =
+            `✅ 已成功在「${data.vendor}」消費 ${data.amount} 元`;
+          document.getElementById('message').style.color = "green";
+          this.reset();
+          vendorSelect.value = vendorParam || "";
         } else {
-          alert("沒有找到相機");
+          document.getElementById('message').textContent = "❌ " + result.message;
+          document.getElementById('message').style.color = "red";
         }
-      });
-    });
-
-    document.getElementById("stop-scan-btn").addEventListener("click", () => {
-      if (scanner) scanner.stop();
-    });
-
-    function redirectToConsumption() {
-      const name = gotoFormBtn.dataset.name;
-      const id = gotoFormBtn.dataset.id;
-      if (!name || !id) {
-        alert("請先掃描 QR Code 取得醫師姓名及編號。");
-        return;
+      } catch (error) {
+        document.getElementById('message').textContent = "⚠️ 發生錯誤，請稍後再試";
+        document.getElementById('message').style.color = "red";
       }
-      let url = `${CONSUMPTION_GAS_URL}?name=${encodeURIComponent(name)}&id=${encodeURIComponent(id)}`;
-      if (vendorCode) {
-        url += `&vendor=${encodeURIComponent(vendorCode)}`;
-      }
-      window.location.href = url;
-    }
-
-    gotoFormBtn.addEventListener("click", redirectToConsumption);
+    });
   </script>
 </body>
 </html>
