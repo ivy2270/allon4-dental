@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>醫師牙材券消費系統 - 掃描</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+      background: #f4f6f8;
+      color: #333;
+    }
+    .container {
+      max-width: 500px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      font-size: 1.6rem;
+      margin-bottom: 15px;
+      color: #2c3e50;
+    }
+    video {
+      width: 100%;
+      border-radius: 12px;
+      margin: 10px 0;
+    }
+    .control-group {
+      margin-top: 15px;
+    }
+    button {
+      padding: 10px 18px;
+      font-size: 1rem;
+      margin: 5px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #3498db;
+      color: white;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #2980b9;
+    }
+    #gotoFormBtn {
+      background: #27ae60;
+    }
+    #gotoFormBtn:hover {
+      background: #1e8449;
+    }
+    #vendor-display {
+      margin-bottom: 15px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #444;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>醫師牙材券消費系統</h1>
+    <!-- 廠商名稱顯示 -->
+    <div id="vendor-display"></div>
+
+    <div class="control-group">
+      <button id="start-scan-btn">啟動掃描</button>
+      <button id="stop-scan-btn">停止掃描</button>
+    </div>
+    <video id="preview"></video>
+    <div class="control-group">
+      <button id="gotoFormBtn">前往消費表單</button>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/instascan@1.0.0/umd/instascan.min.js"></script>
+  <script>
+    const CONSUMPTION_GAS_URL = "YOUR_GAS_DEPLOY_URL"; // ←請換成實際的 GAS Web App URL
+    const gotoFormBtn = document.getElementById("gotoFormBtn");
+    const urlParams = new URLSearchParams(window.location.search);
+    const vendorCode = urlParams.get("vendor") || "";
+
+    // 顯示廠商名稱
+    const vendorDisplay = document.getElementById("vendor-display");
+    if (vendorCode) {
+      vendorDisplay.textContent = `目前廠商：${vendorCode}`;
+    }
+
+    let scanner;
+
+    document.getElementById("start-scan-btn").addEventListener("click", () => {
+      scanner = new Instascan.Scanner({ video: document.getElementById("preview") });
+      scanner.addListener("scan", function (content) {
+        try {
+          const params = new URLSearchParams(content.split("?")[1]);
+          gotoFormBtn.dataset.name = params.get("name");
+          gotoFormBtn.dataset.id = params.get("id");
+          alert("成功掃描：" + gotoFormBtn.dataset.name);
+        } catch (err) {
+          alert("QR Code 格式錯誤");
+        }
+      });
+      Instascan.Camera.getCameras().then(function (cameras) {
+        if (cameras.length > 0) {
+          scanner.start(cameras[0]);
+        } else {
+          alert("沒有找到相機");
+        }
+      });
+    });
+
+    document.getElementById("stop-scan-btn").addEventListener("click", () => {
+      if (scanner) scanner.stop();
+    });
+
+    function redirectToConsumption() {
+      const name = gotoFormBtn.dataset.name;
+      const id = gotoFormBtn.dataset.id;
+      if (!name || !id) {
+        alert("請先掃描 QR Code 取得醫師姓名及編號。");
+        return;
+      }
+      let url = `${CONSUMPTION_GAS_URL}?name=${encodeURIComponent(name)}&id=${encodeURIComponent(id)}`;
+      if (vendorCode) {
+        url += `&vendor=${encodeURIComponent(vendorCode)}`;
+      }
+      window.location.href = url;
+    }
+
+    gotoFormBtn.addEventListener("click", redirectToConsumption);
+  </script>
+</body>
+</html>
