@@ -60,12 +60,12 @@
             margin-top: 20px;
             color: #555;
         }
-        #vendor-display {
-            font-size: 18px;
-            font-weight: bold;
-            color: #555;
-            margin-bottom: 10px;
-        }
+        #vendor-display {
+            font-size: 18px;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 10px;
+        }
     </style>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
@@ -73,7 +73,7 @@
 
 <div class="container">
     <h1>醫師牙材券消費系統</h1>
-    <div id="vendor-display"></div>
+    <div id="vendor-display"></div>
     <div class="control-group">
         <button id="start-scan-btn">啟動掃描</button>
         <button id="stop-scan-btn">停止掃描</button>
@@ -91,7 +91,7 @@
     const stopScanBtn = document.getElementById('stop-scan-btn');
     const gotoFormBtn = document.getElementById('goto-form-btn');
     const loadingMessage = document.getElementById('loading-message');
-    const vendorDisplay = document.getElementById('vendor-display');
+    const vendorDisplay = document.getElementById('vendor-display');
     const config = { fps: 10, qrbox: { width: 250, height: 250 } };
     let currentCameraId = null;
 
@@ -99,52 +99,12 @@
     const urlParams = new URLSearchParams(window.location.search);
     const vendorCode = urlParams.get('vendor');
 
-    // 廠商代碼與名稱對應
-    const vendorMap = {
-      '01 海昌': '海昌',
-      '02 合泰': '合泰',
-      '03 旭達': '旭達',
-      '05 鈺美德': '鈺美德',
-      '06 登美': '登美',
-      '07 奧齒泰': '奧齒泰',
-      '08 三業': '三業',
-      '09 博泰': '博泰',
-      '10 業生': '業生',
-      '11 以西嘉': '以西嘉',
-      '12 誼嘉': '誼嘉',
-      '13 祐安': '祐安',
-      '14 翊達': '翊達',
-      '15 衡奕': '衡奕',
-      '16 聯揚': '聯揚',
-      '17 iEZ勤創': 'iEZ勤創',
-      '18 隱適美': '隱適美',
-      '19 小兵興業': '小兵興業',
-      '20 憶生堂': '憶生堂',
-      '21 昊呈': '昊呈',
-      '22 德瑞士': '德瑞士',
-      '23 荷茂': '荷茂',
-      '24 康盛': '康盛',
-      '25 利多': '利多',
-      '26 牙驛通': '牙驛通',
-      '27 台灣瑞麗': '台灣瑞麗',
-      '28 德淵': '德淵',
-      '29 鐿鈦': '鐿鈦',
-      '30 立祥': '立祥',
-      '31 湧傑': '湧傑',
-      '32 進軒': '進軒',
-      '33 仟鋒': '仟鋒',
-      '34 昇基': '昇基',
-      '35 根達': '根達',
-      '36 中租': '中租',
-      '37 UDB環德': 'UDB環德'
-    };
-
-    // 顯示廠商名稱
-    if (vendorCode) {
-        vendorDisplay.textContent = `廠商：${vendorMap[vendorCode] || vendorCode}`;
-    } else {
-        vendorDisplay.textContent = '廠商：未指定';
-    }
+    // 直接顯示廠商名稱
+    if (vendorCode) {
+        vendorDisplay.textContent = `廠商：${vendorCode}`;
+    } else {
+        vendorDisplay.textContent = '廠商：未指定';
+    }
 
     async function startScanning() {
         startScanBtn.disabled = true;
