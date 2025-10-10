@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>多工作表查詢系統</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+/* 背景設定 */
+body {
+  font-family: 'Inter', 'Noto Sans TC', sans-serif;
+  font-size: 1.2rem;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+
+  /* 背景圖 + 淡化漸層 */
+  background-image: linear-gradient(rgba(255,255,255,0.6), rgba(255,255,255,0.6)),
+                    url('https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=1470&q=80');
+
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* 保留原有樣式 + 白底輸入框 */
+input[type="text"],
+input[type="password"] {
+  font-size: 1.2rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid #cbd5e1;
+  width: 100%;
+  transition: all 0.2s;
+  background-color: white !important; 
+  -webkit-box-shadow: 0 0 0px 1000px white inset !important; /* Chrome autofill */
+  box-shadow: 0 0 0px 1000px white inset !important;          /* 覆蓋 autofill */
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+}
+
+button[type="submit"] {
+  font-size: 1.25rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background-color: #3b82f6;
+  color: white;
+  font-weight: bold;
+  transition: all 0.2s;
+}
+button[type="submit"]:hover {
+  background-color: #2563eb;
+}
+
+.card {
+  border-radius:1rem;
+  padding:1rem;
+  margin-bottom:1rem;
+  box-shadow:0 4px 12px rgba(0,0,0,0.1);
+  border-width: 2px;
+}
+
+.field-label {
+  font-weight:600;
+  color:#4a5568;
+  margin-bottom:0.25rem;
+  font-size:1.1rem;
+}
+.field-value {
+  color:#1f2937;
+  padding:0.5rem;
+  border-radius:0.5rem;
+  border:1px solid #e2e8f0;
+  margin-bottom:0.5rem;
+  word-break:break-word;
+  font-size:1.1rem;
+}
+
+.sum-card {
+  border-radius:1rem;
+  padding:1rem;
+  margin-top:1rem;
+  text-align:center;
+  font-size:1.5rem;
+  font-weight:bold;
+  color:#1e40af;
+  background:white;
+  box-shadow:0 4px 12px rgba(0,0,0,0.1);
+}
+
+a.link {
+  color:#1d4ed8;
+  text-decoration:underline;
+  word-break:break-all;
+}
+
+.no-data-card {
+  background-color: #fef3c7;
+  border: 2px dashed #f59e0b;
+  color: #b45309;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: bold;
+  max-width: 400px;
+  margin: 1rem auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.no-data-card::before { content: "⚠️"; font-size: 1.5rem; }
+
+.error-card {
+  background-color: #fee2e2;
+  border: 2px solid #ef4444;
+  color: #b91c1c;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: bold;
+  max-width: 400px;
+  margin: 1rem auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.error-card::before { content: "❌"; font-size: 1.5rem; }
+
+/* 相對容器 z-index */
+.relative {
+  position: relative;
+  z-index: 0;
+}
+#togglePassword {
+  z-index: 10;
+}
+</style>
+</head>
+<body class="p-4">
+<div class="max-w-2xl mx-auto">
+<h1 class="text-3xl font-bold text-center mb-6">多工作表查詢系統</h1>
+
+<form id="queryForm" class="mb-6 space-y-4">
+  <div>
+    <label class="block mb-1 text-xl">姓名</label>
+    <input type="text" id="name" required class="bg-white">
+  </div>
+  <div>
+    <label class="block mb-2 text-xl font-medium text-gray-900">密碼（身份證後四碼）</label>
+    <div class="relative">
+      <input type="password" name="password" id="password" placeholder="請輸入您的密碼" required class="bg-white"/>
+      <button type="button" id="togglePassword" class="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5">
+        <svg id="eyeOpen" class="h-6 w-6 text-gray-500 hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><path d="M320 96C239.2 96 174.5 132.8 127.4 176.6C80.6 220.1 49.3 272 34.4 307.7C31.1 315.6 31.1 324.4 34.4 332.3C49.3 368 80.6 420 127.4 463.4C174.5 507.1 239.2 544 320 544C400.8 544 465.5 507.2 512.6 463.4C559.4 419.9 590.7 368 605.6 332.3C608.9 324.4 608.9 315.6 605.6 307.7C590.7 272 559.4 220 512.6 176.6C465.5 132.9 400.8 96 320 96zM176 320C176 240.5 240.5 176 320 176C399.5 176 464 240.5 464 320C464 399.5 399.5 464 320 464C240.5 464 176 399.5 176 320zM320 256C320 291.3 291.3 320 256 320C244.5 320 233.7 317 224.3 311.6C223.3 322.5 224.2 333.7 227.2 344.8C240.9 396 293.6 426.4 344.8 412.7C396 399 426.4 346.3 412.7 295.1C400.5 249.4 357.2 220.3 311.6 224.3C316.9 233.6 320 244.4 320 256z"/></svg>
+        <svg id="eyeClosed" class="h-6 w-6 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><path d="M73 39.1C63.6 29.7 48.4 29.7 39.1 39.1C29.8 48.5 29.7 63.7 39 73.1L567 601.1C576.4 610.5 591.6 610.5 600.9 601.1C610.2 591.7 610.3 576.5 600.9 567.2L504.5 470.8C507.2 468.4 509.9 466 512.5 463.6C559.3 420.1 590.6 368.2 605.5 332.5C608.8 324.6 608.8 315.8 605.5 307.9C590.6 272.2 559.3 220.2 512.5 176.8C465.4 133.1 400.7 96.2 319.9 96.2C263.1 96.2 214.3 114.4 173.9 140.4L73 39.1zM236.5 202.7C260 185.9 288.9 176 320 176C399.5 176 464 240.5 464 320C464 351.1 454.1 379.9 437.3 403.5L402.6 368.8C415.3 347.4 419.6 321.1 412.7 295.1C399 243.9 346.3 213.5 295.1 227.2C286.5 229.5 278.4 232.9 271.1 237.2L236.4 202.5zM357.3 459.1C345.4 462.3 332.9 464 320 464C240.5 464 176 399.5 176 320C176 307.1 177.7 294.6 180.9 282.7L101.4 203.2C68.8 240 46.4 279 34.5 307.7C31.2 315.6 31.2 324.4 34.5 332.3C49.4 368 80.7 420 127.5 463.4C174.6 507.1 239.3 544 320.1 544C357.4 544 391.3 536.1 421.6 523.4L357.4 459.2z"/></svg>
+      </button>
+    </div>
+  </div>
+  <button type="submit">查詢</button>
+</form>
+
+<div id="result"></div>
+</div>
+
+<script>
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxaU1Zk3vrDwi8w0A5UdGhrJM1HNYSVxdZj1p1Ap4nCoWJmL16j5Uk9TWicspi9hGu2/exec';
+
+// 密碼眼睛切換
+const toggleBtn = document.getElementById('togglePassword');
+const pwdInput = document.getElementById('password');
+const eyeOpen = document.getElementById('eyeOpen');
+const eyeClosed = document.getElementById('eyeClosed');
+
+toggleBtn.addEventListener('click', () => {
+  if(pwdInput.type === 'password'){
+    pwdInput.type = 'text';
+    eyeOpen.classList.remove('hidden');
+    eyeClosed.classList.add('hidden');
+  } else {
+    pwdInput.type = 'password';
+    eyeOpen.classList.add('hidden');
+    eyeClosed.classList.remove('hidden');
+  }
+});
+
+// 工作表對應底色（框色 + 淡底）
+const sheetColors = {
+  '醫師牙材券查詢':'border-yellow-400 bg-yellow-50',
+  '牙材券消費記錄':'border-green-400 bg-green-50',
+  '序號及QRCODE查詢':'border-blue-400 bg-blue-50',
+  '牙材券加購及得獎記錄':'border-purple-400 bg-purple-50'
+};
+
+document.getElementById('queryForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const name = document.getElementById('name').value;
+  const password = document.getElementById('password').value;
+  const resultDiv = document.getElementById('result');
+  resultDiv.innerHTML = '<p>查詢中...</p>';
+  
+  try{
+    const resp = await fetch(GAS_URL,{
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({action:'query', name, password})
+    });
+    const data = await resp.json();
+    
+    if(data.error){
+      resultDiv.innerHTML = '<div class="card text-red-600">'+data.error+'</div>';
+      return;
+    }
+    
+    resultDiv.innerHTML = '';
+    let sumAmount = 0;
+    
+    data.records.forEach(rec=>{
+      const card = document.createElement('div');
+      const bgClass = sheetColors[rec.sheet] || 'border-gray-300 bg-white';
+      card.className = 'card '+bgClass;
+      
+      const sheetTitle = document.createElement('h2');
+      sheetTitle.className = 'font-bold mb-2 text-lg';
+      sheetTitle.textContent = '工作表: ' + rec.sheet;
+      card.appendChild(sheetTitle);
+      
+      rec.title.forEach((t,i)=>{
+        const label = document.createElement('div');
+        label.className = 'field-label';
+        label.textContent = t;
+        const value = document.createElement('div');
+        value.className = 'field-value';
+        
+        const valText = rec.row[i];
+        if(typeof valText === 'string' && valText.startsWith('http')){
+          const a = document.createElement('a');
+          a.href = valText;
+          a.target = '_blank';
+          a.textContent = valText;
+          a.className = 'link';
+          value.appendChild(a);
+        } else {
+          value.textContent = valText;
+        }
+        
+        card.appendChild(label);
+        card.appendChild(value);
+        
+        if(t==='牙材卷使用金額'){
+          const num = parseFloat(valText);
+          if(!isNaN(num)) sumAmount += num;
+        }
+      });
+      
+      resultDiv.appendChild(card);
+    });
+    
+    if(sumAmount>0){
+      const sumDiv = document.createElement('div');
+      sumDiv.className='sum-card';
+      sumDiv.textContent='牙材卷使用金額總計: '+sumAmount;
+      resultDiv.appendChild(sumDiv);
+    }
+    
+  }catch(err){
+    resultDiv.innerHTML = '<div class="card text-red-600">發生錯誤: '+err.message+'</div>';
+  }
+});
+</script>
+</body>
+</html>

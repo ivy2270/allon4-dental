@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<link rel="icon" href="https://ymdd-image-tw.s3.ap-east-2.amazonaws.com/20250914/allon4-LOGO-02.png" type="image/png"/> 
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>牙材券查詢系統</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <style>
+body {
+  font-family: 'Inter', 'Noto Sans TC', sans-serif;
+  font-size: 1.2rem;
+  background-color: #f3f4f6;
+  line-height: 1.4;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  overflow-y: auto; /* 允許滾動，避免 WebView 鍵盤頂起錯亂 */
+  background-image: linear-gradient(rgba(255,255,255,0.6), rgba(255,255,255,0.6)),
+                    url('https://ymdd-image-tw.s3.ap-east-2.amazonaws.com/20250914/file_00000000934461f78931c0c083eafdc7.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  /* 移除 background-attachment: fixed，避免焦點 Bug */
+}
+
+@media (min-width: 768px) {
+  body {
+    background-image: linear-gradient(rgba(255,255,255,0.6), rgba(255,255,255,0.6)),
+                      url('https://ymdd-image-tw.s3.ap-east-2.amazonaws.com/20250914/photo_2025-07-25_22-19-42.jpg');
+    font-size: 1.125rem;
+  }
+}
+
+input[type="text"],
+input[type="password"],
+select {
+    box-sizing: border-box;
+}
+
+button[type="submit"] {
+    font-size: 1.7rem;
+    padding: 1.2rem 2rem;
+}
+
+.card {
+  background-color: #ffffff;
+  padding: 1.5rem;
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  margin-bottom: 2rem;
+  border: 1px solid #e5e7eb;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem 1rem;
+  align-items: center;
+}
+.card .field-label {
+  font-weight: 600;
+  color: #4a5568;
+  font-size: 1.2rem;
+  text-align: left;
+  white-space: normal;
+  margin-bottom: 0.25rem;
+}
+.card .field-value {
+  color: #2d3748;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e2e8f0;
+  font-size: 1.5rem;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+    .card {
+        display: block;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+    }
+    .card .field-label {
+        font-size: 1.125rem;
+        text-align: left;
+        padding-right: 1rem;
+        margin-bottom: 0;
+    }
+    .card .field-value {
+        font-size: 1.5rem;
+        width: 100%;              /* ✅ 改這裡，桌機也維持佔滿 */
+        word-wrap: break-word;    /* ✅ 確保長字換行 */
+        overflow-wrap: break-word;
+        word-break: break-all;    /* ✅ 保底處理長單字或數字 */
+    }
+}
+
+
+.no-data-card {
+  background-color: #fef3c7;
+  border: 2px dashed #f59e0b;
+  color: #b45309;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: bold;
+  max-width: 400px;
+  margin: 1rem auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.no-data-card::before { content: "⚠️"; font-size: 1.5rem; }
+
+.error-card {
+  background-color: #fee2e2;
+  border: 2px solid #ef4444;
+  color: #b91c1c;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: bold;
+  max-width: 400px;
+  margin: 1rem auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.error-card::before { content: "❌"; font-size: 1.5rem; }
+
+.card .field-value.bg-blue-override { background-color: #dbeafe; color: #1e40af; }
+.card .field-value.bg-green-override { background-color: #dcfce7; color: #15803d; }
+.card .field-value.bg-yellow-override { background-color: #fef9c3; color: #854d09; }
+.card .field-value.bg-red-override { background-color: #fee2e2; color: #991b1b; }
+.card .field-value.bg-gray-override { background-color: #e5e7eb; color: #374151; }
+  </style>
+</head>
+
+<body>
+  <div class="container mx-auto p-4 sm:p-6 md:p-8 max-w-2xl">
+    <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
+      <h2 id="title" class="text-3xl sm:text-5xl font-bold text-center text-gray-800 mb-8">牙材券查詢系統</h2>
+      <form id="myForm" class="space-y-4 sm:space-y-6">
+        <div>
+          <label for="id" class="block mb-2 text-2xl font-medium text-gray-900">醫師姓名</label>
+          <input type="text" name="id" id="id" class="bg-gray-50 border border-gray-300 text-gray-900 text-2xl rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2 sm:p-4" placeholder="請輸入您的姓名" required inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+        </div>
+
+<div>
+          <label for="passwd" class="block mb-2 text-2xl font-medium text-gray-900">密碼（身份證後四碼）</label>
+          <div class="relative"> <input type="password" name="passwd" id="passwd" class="bg-gray-50 border border-gray-300 text-gray-900 text-2xl rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2 sm:p-4 pr-12" placeholder="請輸入您的密碼" required inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+			<button type="button" id="togglePassword" class="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5">
+  <svg id="eyeIconOpen" class="h-6 w-6 text-gray-500 hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><path d="M320 96C239.2 96 174.5 132.8 127.4 176.6C80.6 220.1 49.3 272 34.4 307.7C31.1 315.6 31.1 324.4 34.4 332.3C49.3 368 80.6 420 127.4 463.4C174.5 507.1 239.2 544 320 544C400.8 544 465.5 507.2 512.6 463.4C559.4 419.9 590.7 368 605.6 332.3C608.9 324.4 608.9 315.6 605.6 307.7C590.7 272 559.4 220 512.6 176.6C465.5 132.9 400.8 96 320 96zM176 320C176 240.5 240.5 176 320 176C399.5 176 464 240.5 464 320C464 399.5 399.5 464 320 464C240.5 464 176 399.5 176 320zM320 256C320 291.3 291.3 320 256 320C244.5 320 233.7 317 224.3 311.6C223.3 322.5 224.2 333.7 227.2 344.8C240.9 396 293.6 426.4 344.8 412.7C396 399 426.4 346.3 412.7 295.1C400.5 249.4 357.2 220.3 311.6 224.3C316.9 233.6 320 244.4 320 256z"/></svg>
+
+  <svg id="eyeIconClosed" class="h-6 w-6 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><path d="M73 39.1C63.6 29.7 48.4 29.7 39.1 39.1C29.8 48.5 29.7 63.7 39 73.1L567 601.1C576.4 610.5 591.6 610.5 600.9 601.1C610.2 591.7 610.3 576.5 600.9 567.2L504.5 470.8C507.2 468.4 509.9 466 512.5 463.6C559.3 420.1 590.6 368.2 605.5 332.5C608.8 324.6 608.8 315.8 605.5 307.9C590.6 272.2 559.3 220.2 512.5 176.8C465.4 133.1 400.7 96.2 319.9 96.2C263.1 96.2 214.3 114.4 173.9 140.4L73 39.1zM236.5 202.7C260 185.9 288.9 176 320 176C399.5 176 464 240.5 464 320C464 351.1 454.1 379.9 437.3 403.5L402.6 368.8C415.3 347.4 419.6 321.1 412.7 295.1C399 243.9 346.3 213.5 295.1 227.2C286.5 229.5 278.4 232.9 271.1 237.2L236.4 202.5zM357.3 459.1C345.4 462.3 332.9 464 320 464C240.5 464 176 399.5 176 320C176 307.1 177.7 294.6 180.9 282.7L101.4 203.2C68.8 240 46.4 279 34.5 307.7C31.2 315.6 31.2 324.4 34.5 332.3C49.4 368 80.7 420 127.5 463.4C174.6 507.1 239.3 544 320.1 544C357.4 544 391.3 536.1 421.6 523.4L357.4 459.2z"/></svg>
+</button>
+          </div>
+        </div>
+
+        <div>
+          <label for="exam" class="block mb-2 text-2xl font-medium text-gray-900">選擇項目</label>
+          <select id="exam" name="exam" class="bg-gray-50 border border-gray-300 text-gray-900 text-2xl rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2 sm:p-4"></select>
+        </div>
+
+        <button type="submit" class="w-full text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-2xl px-6 py-4 text-center transition-colors duration-300">
+          查詢
+        </button>
+      </form>
+    </div>
+
+    <div id="result" class="mt-10"></div>
+  </div>
+
+<script>
+  const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxqMVQhfn6M2YTh4nXG3s7zhZ97bdSXmxi9bj4DDpNLRrvVzLlRBtFGIH0pFBqCPGp-/exec';
+
+  async function loadExamList() {
+    try {
+      const response = await fetch(GAS_WEB_APP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'getallsheetnames' })
+      });
+      const data = await response.json();
+      const examSelect = document.getElementById('exam');
+      examSelect.innerHTML = '';
+      data.sheetNames.forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        examSelect.appendChild(opt);
+      });
+    } catch (err) {
+      alert('試卷清單載入失敗：' + err.message);
+    }
+  }
+
+  document.getElementById('myForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('id').value;
+    const passwd = document.getElementById('passwd').value;
+    const exam = document.getElementById('exam').value;
+    const resultDiv = document.getElementById('result');
+    resultDiv.innerHTML = '<p class="text-center text-2xl text-gray-850">查詢中...</p>';
+
+    try {
+      const response = await fetch(GAS_WEB_APP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'processForm', id, passwd, exam })
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        resultDiv.innerHTML = '<div class="error-card">' + data.error + '</div>';
+      } else {
+        resultDiv.innerHTML = '';
+        if (!data.record || data.record.length === 0) {
+          resultDiv.innerHTML = '<div class="no-data-card">查無符合條件的資料</div>';
+          return;
+        }
+
+        let sumAmount = 0; // ➕ 用來加總 D 欄
+
+        data.record.forEach(row => {
+          const card = document.createElement("div");
+          card.className = "card";
+
+          row.forEach((cell, index) => {
+            const label = document.createElement("div");
+            label.className = "field-label";
+            label.textContent = data.title[index];
+
+            const value = document.createElement("div");
+            value.className = "field-value";
+
+            // 🔗 如果是「序號及QRCODE查詢」的 C、D 欄，轉超連結
+            if (exam === "序號及QRCODE查詢" && (index === 2 || index === 3) && cell) {
+              const link = document.createElement("a");
+              link.href = cell;
+              link.textContent = cell;
+              link.target = "_blank";
+              link.className = "text-blue-600 underline";
+              value.appendChild(link);
+            } else {
+              value.textContent = cell;
+            }
+
+            // 🟡 第三欄永遠黃色
+            if (index === 2) {
+              value.classList.add("rounded", "px-2", "py-1", "font-semibold", "bg-yellow-override");
+            }
+            // 🔵 倒數第二欄
+            else if (index === row.length - 2) {
+              value.classList.add("rounded", "px-2", "py-1", "font-semibold", "bg-blue-override");
+            }
+            // ✅ 最後一欄數字判斷
+            else if (index === row.length - 1) {
+              const cleanCell = String(cell).replace(/[^0-9.-]/g, ''); 
+              const num = parseFloat(cleanCell);
+              value.classList.add("rounded", "px-2", "py-1", "font-semibold");
+              if (isNaN(num)) {
+                  value.classList.add("bg-gray-override");
+              } else if (num === 0) {
+                  value.classList.add("bg-yellow-override");
+              } else if (num < 0) {
+                  value.classList.add("bg-red-override");
+              } else {
+                  value.classList.add("bg-green-override");
+              }
+            }
+
+            card.appendChild(label);
+            card.appendChild(value);
+
+            // ➕ 如果是「牙材券消費記錄」，把 D 欄數字累加
+            if (exam === "牙材券消費記錄" && index === 3) {
+              const num = parseFloat(cell) || 0;
+              sumAmount += num;
+            }
+          });
+
+          resultDiv.appendChild(card);
+        });
+
+        // ➕ 顯示加總卡片（僅限牙材券消費記錄）
+        if (exam === "牙材券消費記錄") {
+          const sumCard = document.createElement("div");
+          sumCard.className = "card";
+          sumCard.innerHTML = `
+            <div class="field-label">使用金額合計</div>
+            <div class="field-value bg-blue-override font-bold">${sumAmount.toLocaleString()} 元</div>
+          `;
+          resultDiv.appendChild(sumCard);
+        }
+      }
+    } catch (err) {
+      resultDiv.innerHTML = '<p class="text-red-600 text-2xl">❌ 發生錯誤：' + err.message + '</p>';
+    }
+  });
+
+  document.addEventListener('DOMContentLoaded', loadExamList);
+
+  // WebView 中文輸入優化
+  window.addEventListener('load', () => {
+    const idInput = document.getElementById('id');
+    setTimeout(() => {
+      idInput.blur();
+      setTimeout(() => idInput.focus(), 200);
+    }, 500);
+  });
+
+  // 密碼顯示/隱藏功能
+  const togglePassword = document.getElementById('togglePassword');
+  const passwordInput = document.getElementById('passwd');
+  const eyeIconOpen = document.getElementById('eyeIconOpen');
+  const eyeIconClosed = document.getElementById('eyeIconClosed');
+
+  togglePassword.addEventListener('click', function () {
+    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+    passwordInput.setAttribute('type', type);
+    eyeIconClosed.classList.toggle('hidden');
+    eyeIconOpen.classList.toggle('hidden');
+  });
+</script>
+
+
+
+</body>
+</html>
