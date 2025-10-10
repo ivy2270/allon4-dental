@@ -36,22 +36,23 @@
         #scanned-info-display div {
             margin: 5px 0;
         }
+
         .control-group {
             margin-bottom: 20px;
 			display: flex; /* 啟用 Flex 佈局 */
-            justify-content: space-between; /* 讓內容在主軸上平均分佈 */
-            gap: 10px; /* 按鈕之間的間距 */
+            justify-content: center; /* 讓兩個按鈕整體居中 */
+			gap: 10px;
         }
+		
         .control-group button, #goto-form-btn, #goto-gas-btn {
-            padding: 12px 10px;
+            padding: 12px 15px;
             font-size: 16px;
             border: none;
             border-radius: 5px;
             color: white;
-            cursor: pointer;
-            margin: 0; /* 移除原本的 margin: 5px，改用父層的 gap */
-            flex-grow: 1; /* 讓兩個按鈕平均佔用空間 */
-        }
+            cursor: pointer;			     
+        }	
+		
         #start-scan-btn {
             background-color: #28a745;
         }
@@ -60,10 +61,15 @@
         }
         #goto-form-btn {
             background-color: #ff9800;
+			    width: 100%; /* <--- 補上：佔滿容器寬度 */
+				margin: 10px 0; /* <--- 補上：設定合理的上下間距 */
         }
 		
 		#goto-gas-btn {
-			background-color: #007bff;}
+			background-color: #007bff;
+		    width: 100%; /* <--- 補上：佔滿容器寬度 */
+			margin-bottom: 5px; /* <--- 補上：確保與底部間距 */
+		}
 			
         #loading-message {
             display: none;
@@ -86,8 +92,7 @@
     <div id="vendor-display">廠商：未指定</div>
     
         <div class="control-group">
-        <button id="start-scan-btn">啟動掃描</button>
-        <button id="stop-scan-btn">停止掃描</button>
+        <button id="start-scan-btn">啟動掃描</button><button id="stop-scan-btn">停止掃描</button>
     </div>
     <div id="reader"></div>
     <div id="scanned-info-display">請點擊「啟動掃描」</div>
