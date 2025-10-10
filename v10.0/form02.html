@@ -39,7 +39,8 @@
         .control-group {
             margin-bottom: 20px;
         }
-        .control-group button, #goto-form-btn, #goto-gas-btn {
+        /* 針對所有按鈕的樣式基礎 */
+        .control-group button, #goto-form-btn, #goto-gas-btn { 
             padding: 12px 25px;
             font-size: 16px;
             border: none;
@@ -57,11 +58,12 @@
         #goto-form-btn {
             background-color: #ff9800;
         }
-        /* 新增按鈕樣式 */
+        /* 新增「直接進入表單」按鈕的樣式 */
         #goto-gas-btn {
             background-color: #007bff; /* 藍色 */
-            width: 100%; 
+            width: 100%;
             margin-top: 15px;
+            margin-bottom: 5px;
         }
         #loading-message {
             display: none;
@@ -82,12 +84,8 @@
 <div class="container">
     <h1>醫師牙材券消費系統</h1>
     <div id="vendor-display">廠商：未指定</div>
-    
-        <button id="goto-gas-btn">直接進入表單</button>
-    
-    <hr style="margin: 20px 0; border-top: 1px solid #ddd;">
-    
-    <div class="control-group">
+    
+        <div class="control-group">
         <button id="start-scan-btn">啟動掃描</button>
         <button id="stop-scan-btn">停止掃描</button>
     </div>
@@ -95,26 +93,35 @@
     <div id="scanned-info-display">請點擊「啟動掃描」</div>
     <button id="goto-form-btn" disabled>前往消費表單 (已掃描)</button>
     <div id="loading-message">處理中...</div>
+    
+    <hr style="margin: 20px 0; border-top: 1px solid #ddd;">
+    
+    <button id="goto-gas-btn">直接進入表單 (不掃描)</button>
 </div>
 
 <script>
+// ==========================================================
+// 1. 設定 GAS 部署網址（只在一個位置設定）
+// ==========================================================
+const CONSUMPTION_GAS_URL = "https://script.google.com/macros/s/AKfycbyNhuBu5d4yObAuxAHpXP1FbrkWwBLzoiWTUVZMioj4MZSW4wEVTGQkzHqaLunLrLhK8Q/exec";
+
+// ==========================================================
+// 2. 獲取 HTML 元素和 URL 參數
+// ==========================================================
 const html5QrCode = new Html5Qrcode("reader");
 const infoDisplay = document.getElementById('scanned-info-display');
 const startScanBtn = document.getElementById('start-scan-btn');
 const stopScanBtn = document.getElementById('stop-scan-btn');
 const gotoFormBtn = document.getElementById('goto-form-btn');
-const gotoGasBtn = document.getElementById('goto-gas-btn'); // 取得新按鈕
+const gotoGasBtn = document.getElementById('goto-gas-btn'); // 新增的按鈕
 const loadingMessage = document.getElementById('loading-message');
 const vendorDisplay = document.getElementById('vendor-display');
 const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 let currentCameraId = null;
 
-// GAS 部署網址（基礎網址）
-const CONSUMPTION_GAS_URL = "https://script.google.com/macros/s/AKfycbyNhuBu5d4yObAuxAHpXP1FbrkWwBLzoiWTUVZMioj4MZSW4wEVTGQkzHqaLunLrLhK8Q/exec";
-
-// 讀取 URL 中的廠商參數，名稱必須是 'vendor' 才能匹配您現有的 GAS 轉址邏輯
+// 讀取 URL 中的廠商參數 (使用 'vendor')
 const urlParams = new URLSearchParams(window.location.search);
-const vendorCode = urlParams.get('vendor'); // 使用 'vendor'
+const vendorCode = urlParams.get('vendor');
 
 // 顯示廠商名稱
 if (vendorCode) {
@@ -123,8 +130,11 @@ if (vendorCode) {
     vendorDisplay.textContent = '廠商：未指定';
 }
 
-// === QR Code 掃描相關函式 (省略，與您原有程式碼一致) ===
-// ... (startScanning, onScanSuccess, stopScanning) ...
+
+// ==========================================================
+// 3. QR Code 掃描相關函式 (保持不變)
+// ==========================================================
+
 async function startScanning() {
     startScanBtn.disabled = true;
     infoDisplay.innerHTML = '正在啟動相機...';
@@ -147,6 +157,7 @@ async function startScanning() {
         startScanBtn.disabled = false;
     }
 }
+
 const onScanSuccess = (decodedText, decodedResult) => {
     console.log(`QR Code 掃描成功: ${decodedText}`);
     const params = new URLSearchParams(decodedText);
@@ -163,6 +174,7 @@ const onScanSuccess = (decodedText, decodedResult) => {
     html5QrCode.stop().catch(err => { console.error("停止掃描失敗: ", err); });
     startScanBtn.disabled = false;
 };
+
 function stopScanning() {
     stopScanBtn.disabled = true;
     html5QrCode.stop().then(() => {
@@ -173,7 +185,6 @@ function stopScanning() {
     }).catch(err => { console.error("停止掃描失敗: ", err); });
 }
 
-
 // 掃描成功後的轉址函式 (保持不變)
 function redirectToConsumption() {
     const name = gotoFormBtn.dataset.name;
@@ -183,18 +194,20 @@ function redirectToConsumption() {
         return;
     }
 
+    loadingMessage.style.display = 'block';
     // 轉址到 GAS，帶著 name, id, 和 vendor 參數
     const url = `${CONSUMPTION_GAS_URL}?name=${encodeURIComponent(name)}&vendor=${encodeURIComponent(vendorCode || '')}&id=${encodeURIComponent(id)}`;
-    loadingMessage.style.display = 'block';
     window.location.href = url;
 }
 
-// === 新增的「直接進入表單」轉址函式 (新功能) ===
+
+// ==========================================================
+// 4. 新增的「直接進入表單」轉址函式
+// ==========================================================
 
 function redirectToGasDirectly() {
     // 構造 URL，只傳遞 vendor 參數
-    // 如果 vendorCode 有值，URL 變成: .../exec?vendor=廠商名稱
-    // 如果 vendorCode 沒值，URL 變成: .../exec?vendor=
+    // 轉址到 GAS，帶著 vendor 參數 (如果有的話)
     const url = `${CONSUMPTION_GAS_URL}?vendor=${encodeURIComponent(vendorCode || '')}`;
     console.log("直接進入表單，轉址至: " + url);
     loadingMessage.style.display = 'block';
@@ -202,7 +215,9 @@ function redirectToGasDirectly() {
 }
 
 
-// === 事件監聽器 ===
+// ==========================================================
+// 5. 事件監聽器
+// ==========================================================
 
 startScanBtn.addEventListener('click', startScanning);
 stopScanBtn.addEventListener('click', stopScanning);
