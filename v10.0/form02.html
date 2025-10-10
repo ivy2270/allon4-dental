@@ -4,79 +4,75 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>醫師牙材券消費系統</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 20px;
-            background-color: #f4f4f4;
-            color: #333;
-        }
-        .container {
-            max-width: 500px;
-            margin: auto;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-        h1 {
-            color: #333;
-        }
-        #reader {
-            width: 100%;
-        }
-        #scanned-info-display {
-            font-size: 20px;
-            font-weight: bold;
-            color: #0056b3;
-            margin: 20px 0;
-            min-height: 24px;
-        }
-        #scanned-info-display div {
-            margin: 5px 0;
-        }
-        .control-group {
-            margin-bottom: 20px;
-        }
-        /* 針對所有按鈕的樣式基礎 */
-        .control-group button, #goto-form-btn, #goto-gas-btn { 
-            padding: 12px 25px;
-            font-size: 16px;
-            border: none;
-            border-radius: 5px;
-            color: white;
-            cursor: pointer;
-            margin: 5px;
-        }
-        #start-scan-btn {
-            background-color: #28a745;
-        }
-        #stop-scan-btn {
-            background-color: #6c757d;
-        }
-        #goto-form-btn {
-            background-color: #ff9800;
-        }
-        /* 新增「直接進入表單」按鈕的樣式 */
-        #goto-gas-btn {
-            background-color: #007bff; /* 藍色 */
-            width: 100%;
-            margin-top: 15px;
-            margin-bottom: 5px;
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background-color: #f4f4f4;
+            color: #333;
         }
-        #loading-message {
-            display: none;
-            margin-top: 20px;
-            color: #555;
-        }
-        #vendor-display {
-            font-size: 18px;
-            font-weight: bold;
-            color: #555;
-            margin-bottom: 10px;
-        }
-    </style>
+        .container {
+            max-width: 500px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        #reader {
+            width: 100%;
+        }
+        #scanned-info-display {
+            font-size: 20px;
+            font-weight: bold;
+            color: #0056b3;
+            margin: 20px 0;
+            min-height: 24px;
+        }
+        #scanned-info-display div {
+            margin: 5px 0;
+        }
+        .control-group {
+            margin-bottom: 20px;
+        }
+        .control-group button, #goto-form-btn, #goto-gas-btn {
+            padding: 12px 25px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            margin: 5px;
+        }
+        #start-scan-btn {
+            background-color: #28a745;
+        }
+        #stop-scan-btn {
+            background-color: #6c757d;
+        }
+        #goto-form-btn {
+            background-color: #ff9800;
+        }
+		
+		#goto-gas-btn {
+			background-color: #007bff;}
+			
+        #loading-message {
+            display: none;
+            margin-top: 20px;
+            color: #555;
+        }
+        #vendor-display {
+            font-size: 18px;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 10px;
+        }
+    </style>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
 <body>
@@ -91,12 +87,12 @@
     </div>
     <div id="reader"></div>
     <div id="scanned-info-display">請點擊「啟動掃描」</div>
-    <button id="goto-form-btn" disabled>前往消費表單 (已掃描)</button>
+    <button id="goto-form-btn" disabled>前往消費表單（已掃描）</button>
     <div id="loading-message">處理中...</div>
     
     <hr style="margin: 20px 0; border-top: 1px solid #ddd;">
     
-    <button id="goto-gas-btn">直接進入表單 (不掃描)</button>
+    <button id="goto-gas-btn">直接進入表單（無QR CODE時使用）</button>
 </div>
 
 <script>
