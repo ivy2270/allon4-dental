@@ -38,15 +38,19 @@
         }
         .control-group {
             margin-bottom: 20px;
+			display: flex; /* 啟用 Flex 佈局 */
+            justify-content: space-between; /* 讓內容在主軸上平均分佈 */
+            gap: 10px; /* 按鈕之間的間距 */
         }
         .control-group button, #goto-form-btn, #goto-gas-btn {
-            padding: 12px 25px;
+            padding: 12px 10px;
             font-size: 16px;
             border: none;
             border-radius: 5px;
             color: white;
             cursor: pointer;
-            margin: 5px;
+            margin: 0; /* 移除原本的 margin: 5px，改用父層的 gap */
+            flex-grow: 1; /* 讓兩個按鈕平均佔用空間 */
         }
         #start-scan-btn {
             background-color: #28a745;
