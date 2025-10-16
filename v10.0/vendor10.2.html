@@ -5,69 +5,70 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>醫師牙材券消費系統</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 20px;
-            background-color: #f4f4f4;
-            color: #333;
-        }
-        .container {
-            max-width: 500px;
-            margin: auto;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-        h1 {
-            color: #333;
-        }
-        #reader {
-            width: 100%;
-        }
-        #scanned-info-display {
-            font-size: 20px;
-            font-weight: bold;
-            color: #0056b3;
-            margin: 20px 0;
-            min-height: 24px;
-        }
-        #scanned-info-display div {
-            margin: 5px 0;
-        }
-        .control-group {
-            margin-bottom: 20px;
-        }
-        .control-group button, #goto-form-btn {
-            padding: 12px 25px;
-            font-size: 16px;
-            border: none;
-            border-radius: 5px;
-            color: white;
-            cursor: pointer;
-            margin: 5px;
-        }
-        #start-scan-btn {
-            background-color: #28a745;
-        }
-        #stop-scan-btn {
-            background-color: #6c757d;
-        }
-        #goto-form-btn {
-            background-color: #ff9800;
-        }
-        #loading-message {
-            display: none;
-            margin-top: 20px;
-            color: #555;
-        }
-        #vendor-display {
-            font-size: 18px;
-            font-weight: bold;
-            color: #555;
-            margin-bottom: 10px;
-        }
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  padding: 20px;
+  background-color: #f4f4f4;
+  color: #333;
+}
+.container {
+  max-width: 500px;
+  margin: auto;
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+h1 { color: #333; }
+#reader { width: 100%; }
+
+/* ✅ 修正這裡：讓按鈕與提示文字間距回到第一版效果 */
+#scanned-info-display {
+  font-size: 20px;
+  font-weight: bold;
+  color: #0056b3;
+  margin: 20px 0; /* 原本是10px，改回20px讓整體平衡 */
+  min-height: 24px;
+}
+#scanned-info-display div { margin: 5px 0; }
+
+.control-group {
+  margin-bottom: 10px; 
+  text-align: center;
+}
+
+/* 按鈕樣式 */
+.control-group button, #goto-form-btn, #goto-gas-btn {
+  display: inline-block;
+  padding: 12px 25px;
+  font-size: 16px;
+  border: none;
+  border-radius: 5px;
+  color: white;
+  cursor: pointer;
+  margin: 5px;
+  vertical-align: middle;
+}
+
+#start-scan-btn { background-color: #28a745; }
+#stop-scan-btn  { background-color: #6c757d; }
+#goto-form-btn  { background-color: #ff9800; }
+#goto-gas-btn   { background-color: #007bff; }
+
+#loading-message { display: none; margin-top: 20px; color: #555; }
+#vendor-display { font-size: 18px; font-weight: bold; color: #555; margin-bottom: 10px; }
+hr { margin: 15px 0; border-top: 1px solid #ddd; }
+
+/* RWD：窄螢幕改成直排 */
+@media (max-width:420px){
+  .control-group button {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    margin: 8px 0;
+  }
+}
     </style>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
@@ -75,25 +76,35 @@
 
 <div class="container">
     <h1>醫師牙材券消費系統</h1>
-    <div id="vendor-display">廠商：未指定</div>
+    <div id="vendor-display">廠商：未指定</div>    
     <div class="control-group">
         <button id="start-scan-btn">啟動掃描</button>
         <button id="stop-scan-btn">停止掃描</button>
     </div>
     <div id="reader"></div>
     <div id="scanned-info-display">請點擊「啟動掃描」</div>
-    <button id="goto-form-btn" disabled>前往消費表單</button>
+    <button id="goto-form-btn" disabled>前往消費表單（已掃描）</button>
     <div id="loading-message">處理中...</div>
+
     <hr style="margin: 20px 0; border-top: 1px solid #ddd;">
     <button id="goto-gas-btn">直接進入表單（無QR CODE時使用）</button>
 </div>
 
 <script>
+// ==========================================================
+// 1. 設定 GAS 部署網址（只在一個位置設定）
+// ==========================================================
+const CONSUMPTION_GAS_URL = "https://script.google.com/macros/s/AKfycby1-ndu1qTrKkmW6ayjV4qw2NdlfrabJkT4MEEs2FpuCfWwXqgjpIfIpPkymII-bF7iiA/exec";
+
+// ==========================================================
+// 2. 獲取 HTML 元素和 URL 參數
+// ==========================================================
 const html5QrCode = new Html5Qrcode("reader");
 const infoDisplay = document.getElementById('scanned-info-display');
 const startScanBtn = document.getElementById('start-scan-btn');
 const stopScanBtn = document.getElementById('stop-scan-btn');
 const gotoFormBtn = document.getElementById('goto-form-btn');
+const gotoGasBtn = document.getElementById('goto-gas-btn');
 const loadingMessage = document.getElementById('loading-message');
 const vendorDisplay = document.getElementById('vendor-display');
 const config = { fps: 10, qrbox: { width: 250, height: 250 } };
@@ -110,6 +121,9 @@ if (vendorCode) {
     vendorDisplay.textContent = '廠商：未指定';
 }
 
+// ==========================================================
+// 3. QR Code 掃描功能
+// ==========================================================
 async function startScanning() {
     startScanBtn.disabled = true;
     infoDisplay.innerHTML = '正在啟動相機...';
@@ -160,8 +174,9 @@ function stopScanning() {
     }).catch(err => { console.error("停止掃描失敗: ", err); });
 }
 
-const CONSUMPTION_GAS_URL = "https://script.google.com/macros/s/AKfycby1-ndu1qTrKkmW6ayjV4qw2NdlfrabJkT4MEEs2FpuCfWwXqgjpIfIpPkymII-bF7iiA/exec";
-
+// ==========================================================
+// 4. 掃描成功後導向
+// ==========================================================
 function redirectToConsumption() {
     const name = gotoFormBtn.dataset.name;
     const id = gotoFormBtn.dataset.id;
@@ -170,14 +185,28 @@ function redirectToConsumption() {
         return;
     }
 
-    // 傳送所有參數給 GAS，包括可能為空的 vendorCode
+    loadingMessage.style.display = 'block';
     const url = `${CONSUMPTION_GAS_URL}?name=${encodeURIComponent(name)}&vendor=${encodeURIComponent(vendorCode || '')}&id=${encodeURIComponent(id)}`;
     window.location.href = url;
 }
 
+// ==========================================================
+// 5. 直接進入表單（無掃描）
+// ==========================================================
+function redirectToGasDirectly() {
+    const url = `${CONSUMPTION_GAS_URL}?vendor=${encodeURIComponent(vendorCode || '')}`;
+    console.log("直接進入表單，轉址至: " + url);
+    loadingMessage.style.display = 'block';
+    window.location.href = url;
+}
+
+// ==========================================================
+// 6. 綁定事件
+// ==========================================================
 startScanBtn.addEventListener('click', startScanning);
 stopScanBtn.addEventListener('click', stopScanning);
 gotoFormBtn.addEventListener('click', redirectToConsumption);
+gotoGasBtn.addEventListener('click', redirectToGasDirectly);
 </script>
 
 </body>
