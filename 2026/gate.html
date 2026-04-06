@@ -8,20 +8,12 @@
         :root { --primary: #4a90e2; --bg: #f5f7fa; --text: #2c3e50; --success: #27ae60; }
         body { font-family: -apple-system, "Noto Sans TC", sans-serif; background-color: var(--bg); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; color: var(--text); }
         .card { background: white; width: 90%; max-width: 400px; padding: 40px 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: center; }
-        
-        /* 載入動畫 */
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
         .status-title { font-size: 20px; font-weight: bold; margin-bottom: 10px; }
         .status-msg { font-size: 15px; color: #777; line-height: 1.5; }
-        
-        /* 尚未設定身分時的警告樣式 */
         .warning-icon { font-size: 48px; margin-bottom: 15px; }
         .highlight { color: var(--primary); font-weight: bold; }
-        
-        /* 設定成功時的提示 */
-        .alert-box { background: #e8f5e9; color: #2e7d32; padding: 15px; border-radius: 12px; margin-top: 20px; font-weight: bold; display: none; }
     </style>
 </head>
 <body>
@@ -45,7 +37,6 @@
 <script>
     // --- 🛠 核心配置區 🛠 ---
     const CONFIG = {
-        // 請填入您 GitHub 上對應頁面的完整 URL
         checkinPage: "https://app.allon4-dental.tw/2026/confirmation.html", 
         spendPage: "https://app.allon4-dental.tw/2026/consumption.html" 
     };
@@ -55,12 +46,15 @@
     const id = params.get('id');
     const setRole = params.get('role');
     const setVendor = params.get('vendor');
+    const setAction = params.get('action'); // 支援從登入碼設定 action
 
     // 1. 身分設定邏輯 (工作人員初始化)
     if (setRole === 'checkin') {
+        const action = setAction || 'checkin';
         localStorage.setItem('work_mode', 'checkin');
+        localStorage.setItem('work_action', action); // 儲存簽到或簽退模式
         localStorage.removeItem('work_vendor');
-        showConfigSuccess("報到處工作人員");
+        showConfigSuccess(action === 'checkin' ? "報到處 (簽到模式)" : "報到處 (簽退模式)");
     } 
     else if (setVendor) {
         localStorage.setItem('work_mode', 'vendor');
@@ -71,11 +65,13 @@
     else if (name && id) {
         const currentMode = localStorage.getItem('work_mode');
         const currentVendor = localStorage.getItem('work_vendor');
+        const currentAction = localStorage.getItem('work_action') || 'checkin';
         const commonParams = `?id=${encodeURIComponent(id)}&name=${encodeURIComponent(name)}`;
 
         if (currentMode === 'checkin') {
-            updateStatus("識別為：報到處", "正在開啟確認頁面...");
-            window.location.href = CONFIG.checkinPage + commonParams + `&action=checkin`;
+            const modeText = currentAction === 'checkin' ? "簽到" : "簽退";
+            updateStatus(`識別為：報到處 (${modeText})`, "正在開啟確認頁面...");
+            window.location.href = CONFIG.checkinPage + commonParams + `&action=${currentAction}`;
         } 
         else if (currentMode === 'vendor') {
             updateStatus(`識別為：${currentVendor}`, "正在開啟消費表單...");
@@ -85,16 +81,17 @@
             showError();
         }
     } else {
-        // 如果只是空手打開 gate.html，檢查是否有身分
         const currentMode = localStorage.getItem('work_mode');
         if (currentMode) {
-            updateStatus("系統就緒", `目前模式：${currentMode === 'checkin' ? '報到處' : localStorage.getItem('work_vendor')}<br>請直接掃描醫師 QR Code`);
+            const modeName = currentMode === 'checkin' ? 
+                (localStorage.getItem('work_action') === 'checkout' ? "報到處 (簽退)" : "報到處 (簽到)") : 
+                localStorage.getItem('work_vendor');
+            updateStatus("系統就緒", `目前模式：${modeName}<br>請直接掃描醫師 QR Code`);
         } else {
             showError();
         }
     }
 
-    // --- UI 輔助函式 ---
     function updateStatus(title, msg) {
         document.getElementById('status-title').textContent = title;
         document.getElementById('status-msg').innerHTML = msg;
@@ -109,10 +106,9 @@
         document.getElementById('status-title').textContent = "設定成功！";
         document.getElementById('status-msg').innerHTML = `已鎖定身分為：<br><span class="highlight">${identity}</span><br><br>稍後將自動重整...`;
         setTimeout(() => {
-            window.location.href = window.location.pathname; // 清除 URL 參數回到乾淨的 gate.html
+            window.location.href = window.location.pathname;
         }, 2000);
     }
 </script>
-
 </body>
 </html>
