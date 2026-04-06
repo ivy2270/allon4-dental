@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>確認報到資訊</title>
+    <title>確認資訊 - 醫師服務系統</title>
     <style>
         :root { --primary: #4a90e2; --bg: #f5f7fa; --text: #2c3e50; }
         body { font-family: -apple-system, "Noto Sans TC", sans-serif; background-color: var(--bg); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
@@ -14,7 +14,7 @@
         .info-row { margin: 8px 0; font-size: 16px; color: #555; }
         .info-label { font-weight: bold; color: var(--text); margin-right: 8px; }
         .btn { width: 100%; padding: 16px; font-size: 18px; font-weight: 600; border: none; border-radius: 12px; cursor: pointer; transition: all 0.2s; background: var(--primary); color: white; box-shadow: 0 4px 15px rgba(74, 144, 226, 0.3); }
-        .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(74, 144, 226, 0.4); }
+        .btn:active { transform: scale(0.98); }
         .btn:disabled { background: #ccc; box-shadow: none; cursor: not-allowed; }
     </style>
 </head>
@@ -22,13 +22,12 @@
 
 <div class="card">
     <div class="icon">📝</div>
-    <h1>確認報到資訊</h1>
+    <h1>確認資訊</h1>
     <div class="info-box">
         <div class="info-row"><span class="info-label">姓名：</span><span id="name-txt">讀取中...</span></div>
         <div class="info-row"><span class="info-label">編號：</span><span id="id-txt">---</span></div>
         <div class="info-row"><span class="info-label">動作：</span><span id="action-txt" style="color: #e67e22; font-weight: bold;">---</span></div>
     </div>
-
     <button id="submit-btn" class="btn">確認提交</button>
 </div>
 
@@ -38,7 +37,7 @@
     const id = params.get('id');
     const name = params.get('name');
     const action = params.get('action') || 'checkin';
-    const actionChinese = action === 'checkin' ? '簽到' : '簽退';
+    const actionChinese = (action === 'checkout') ? '簽退' : '簽到';
 
     document.getElementById('name-txt').textContent = name || '未知';
     document.getElementById('id-txt').textContent = id || '---';
@@ -51,15 +50,16 @@
         this.textContent = "處理中...";
 
         try {
-            // 發送資料給 GAS
             await fetch(GAS_URL, {
                 method: "POST",
                 mode: "no-cors",
                 body: JSON.stringify({ id, name, action })
             });
 
-            // 跳轉至成功頁面
-            window.location.href = `success.html?name=${encodeURIComponent(name)}&id=${encodeURIComponent(id)}&action=${encodeURIComponent(actionChinese)}`;
+            // 稍微延遲確保封包發出，並帶上中文 action 給成功頁面
+            setTimeout(() => {
+                window.location.href = `success.html?name=${encodeURIComponent(name)}&action=${encodeURIComponent(actionChinese)}`;
+            }, 500);
         } catch (err) {
             alert("連線失敗，請重試");
             this.disabled = false;
@@ -67,6 +67,5 @@
         }
     };
 </script>
-
 </body>
 </html>
