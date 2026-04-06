@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>牙材券消費確認</title>
+    <title>牙材券消費</title>
     <style>
         :root { --primary: #4a90e2; --bg: #f5f7fa; --text: #2c3e50; --error: #e74c3c; }
         body { font-family: -apple-system, "Noto Sans TC", sans-serif; background-color: var(--bg); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
@@ -12,7 +12,7 @@
         h1 { font-size: 20px; color: var(--text); margin: 0; }
         .form-group { margin-bottom: 18px; }
         label { display: block; font-weight: bold; margin-bottom: 8px; color: #555; font-size: 14px; }
-        input { width: 100%; padding: 12px; border: 1.5px solid #eee; border-radius: 12px; font-size: 16px; box-sizing: border-box; transition: 0.2s; }
+        input, select { width: 100%; padding: 12px; border: 1.5px solid #eee; border-radius: 12px; font-size: 16px; box-sizing: border-box; transition: 0.2s; }
         input:read-only { background-color: #f0f0f0; color: #888; border-color: #ddd; }
         input:focus { outline: none; border-color: var(--primary); }
         .btn { width: 100%; padding: 16px; font-size: 18px; font-weight: 600; border: none; border-radius: 12px; cursor: pointer; background: var(--primary); color: white; margin-top: 10px; }
@@ -28,7 +28,7 @@
     <form id="consumeForm">
         <div class="form-group">
             <label>醫師姓名</label>
-            <input type="text" name="name" id="docName" readonly>
+            <input type="text" name="name" id="docName" placeholder="請輸入醫師姓名" required>
         </div>
 
         <div class="form-group">
@@ -37,14 +37,15 @@
         </div>
 
         <div class="form-group">
-            <label>服務廠商</label>
-            <input type="text" id="vendorDisplay" readonly>
-            <input type="hidden" name="vendor" id="vendorHidden">
+            <label>廠商 (必選)</label>
+            <select name="vendor" id="vendorSelect" required>
+                <option value="">-- 載入中... --</option>
+            </select>
         </div>
 
         <div class="form-group">
             <label>身份證後四碼 (核對身分)</label>
-            <input type="password" name="password" id="password" placeholder="請由醫師輸入" required maxlength="4">
+            <input type="password" name="password" id="password" placeholder="請詢問醫師身份證後四碼" required maxlength="4">
         </div>
 
         <div class="form-group">
@@ -64,83 +65,90 @@
 
     window.onload = async function() {
         const params = new URLSearchParams(window.location.search);
-        const name = params.get('id'); 
-        // 修正 1: 對應 GATE.HTML 的 Key
-        const vendor = localStorage.getItem('work_vendor'); 
+        const urlId = params.get('id'); 
+        const urlVendor = params.get('vendor') || localStorage.getItem('work_vendor');
 
-        document.getElementById('docName').value = name || "未知醫師";
-        document.getElementById('vendorDisplay').value = vendor || "未設定廠商";
-        document.getElementById('vendorHidden').value = vendor || "";
+        // 1. 載入廠商選單
+        await loadVendors(urlVendor);
 
-        if (!name) {
-            updateMsg("❌ 錯誤：無法辨識醫師身分", true);
-            return;
+        // 2. 處理姓名
+        const nameInput = document.getElementById('docName');
+        if (urlId) {
+            nameInput.value = urlId;
+            nameInput.readOnly = true;
+            fetchBalance(urlId);
+        } else {
+            nameInput.addEventListener('blur', function() {
+                if (this.value.trim()) fetchBalance(this.value.trim());
+            });
         }
+    };
 
+    async function loadVendors(selectedVendor) {
+        const select = document.getElementById('vendorSelect');
+        try {
+            const resp = await fetch(`${GAS_URL}?action=getVendors`);
+            const data = await resp.json();
+            if (data.status === "success" && data.message) {
+                const list = data.message.split(',').map(v => v.trim());
+                let html = '<option value="">-- 請選擇廠商 --</option>';
+                list.forEach(v => {
+                    const active = (v === selectedVendor) ? 'selected' : '';
+                    html += `<option value="${v}" ${active}>${v}</option>`;
+                });
+                select.innerHTML = html;
+            }
+        } catch (e) { select.innerHTML = '<option value="">載入失敗</option>'; }
+    }
+
+    async function fetchBalance(name) {
+        isReady = false;
+        updateMsg("正在核對醫師資料...", false);
         try {
             const resp = await fetch(`${GAS_URL}?action=checkBalance&name=${encodeURIComponent(name)}`);
             const data = await resp.json();
             if (data.status === "success") {
                 hiddenBalance = data.balance;
                 isReady = true;
-                updateMsg("✅ 系統已就緒", false);
+                updateMsg("✅ 醫師資料核對成功", false);
+            } else {
+                updateMsg("❌ 找不到此醫師資料", true);
             }
-        } catch (e) {
-            updateMsg("⚠️ 餘額讀取延遲，請稍候再輸入金額", false);
-        }
-    };
+        } catch (e) { updateMsg("⚠️ 網路連線延遲", true); }
+    }
 
-    // 修正 2: 輸入金額時即時驗證 (不等到送出)
     document.getElementById('amount').addEventListener('blur', function() {
         const val = parseInt(this.value);
-        if (isNaN(val)) return;
-        
-        if (val % 1000 !== 0) {
-            updateMsg("❌ 金額必須是 1000 的倍數", true);
-            this.style.borderColor = "red";
-        } else if (isReady && val > hiddenBalance) {
-            updateMsg(`❌ 餘額不足 (輸入: ${val})`, true);
-            this.style.borderColor = "red";
-        } else {
-            updateMsg("金額檢查 OK", false);
-            this.style.borderColor = "#eee";
-        }
+        if (!val) return;
+        if (val % 1000 !== 0) updateMsg("❌ 金額必須是 1000 的倍數", true);
+        else if (isReady && val > hiddenBalance) updateMsg(`❌ 餘額不足 (剩餘: ${hiddenBalance})`, true);
+        else updateMsg("金額檢查 OK", false);
     });
 
-    // 修正 3: 送出時改用標準 fetch 以接收 GAS 的密碼錯誤訊息
     document.getElementById('consumeForm').onsubmit = async function(e) {
         e.preventDefault();
+        if (!isReady) { updateMsg("❌ 請先確保醫師姓名正確", true); return; }
+
         const btn = document.getElementById('submitBtn');
         const amount = parseInt(document.getElementById('amount').value);
-
-        if (amount > hiddenBalance) {
-            updateMsg("❌ 餘額不足，請重新輸入", true);
-            return;
-        }
+        
+        if (amount > hiddenBalance) { updateMsg("❌ 餘額不足", true); return; }
 
         btn.disabled = true;
-        updateMsg("正在驗證密碼並扣款...", false);
-
-        const formData = new FormData(this);
-        const payload = Object.fromEntries(formData.entries());
+        updateMsg("正在處理...", false);
+        const payload = Object.fromEntries(new FormData(this).entries());
 
         try {
-            // 為了讀取密碼錯誤，不能用 no-cors
-            const response = await fetch(GAS_URL, {
-                method: 'POST',
-                body: JSON.stringify(payload)
-            });
+            const response = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(payload) });
             const result = await response.json();
-
             if (result.status === "success") {
                 window.location.href = `vendor-success.html?name=${encodeURIComponent(payload.name)}&amount=${amount}&vendor=${encodeURIComponent(payload.vendor)}`;
             } else {
-                updateMsg("❌ " + result.message, true); // 顯示「密碼錯誤」
+                updateMsg("❌ " + result.message, true);
                 btn.disabled = false;
             }
         } catch (err) {
-            // 只有當發生跨網域阻擋時，才 fallback 到 no-cors 或直接判定成功
-            console.warn("CORS 限制，嘗試備援發送...");
+            // Fallback for CORS
             fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
             setTimeout(() => {
                 window.location.href = `vendor-success.html?name=${encodeURIComponent(payload.name)}&amount=${amount}&vendor=${encodeURIComponent(payload.vendor)}`;
