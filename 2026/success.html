@@ -5,16 +5,59 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>操作成功</title>
     <style>
-        :root { --success: #27ae60; --bg: #f1f9f5; --card-shadow: rgba(39, 174, 96, 0.15); }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg); margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100dvh; overflow: hidden; }
-        .card { background: white; width: 85%; max-width: 350px; padding: 40px 24px; border-radius: 24px; box-shadow: 0 12px 40px var(--card-shadow); text-align: center; transform: translateY(-10px); }
-        .success-icon { font-size: 72px; margin-bottom: 24px; display: block; }
-        h1 { font-size: 26px; color: #2c3e50; margin: 0 0 12px 0; }
-        p { font-size: 18px; color: #5f6368; line-height: 1.6; margin: 0 0 30px 0; }
-        .doctor-highlight { color: var(--success); font-weight: 700; font-size: 20px; }
-        .back-btn { display: block; width: 100%; padding: 16px 0; font-size: 18px; font-weight: 600; border: none; border-radius: 16px; background: #2c3e50; color: white; cursor: pointer; text-decoration: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .back-btn:active { transform: scale(0.96); background: #1a252f; }
-        .hint { margin-top: 20px; font-size: 14px; color: #999; }
+        :root { --success: #27ae60; --bg: #f1f9f5; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background-color: var(--bg); margin: 0; 
+            display: flex; align-items: center; justify-content: center; 
+            min-height: 100dvh; overflow: hidden; 
+        }
+        .card { 
+            background: white; width: 85%; max-width: 350px; 
+            padding: 40px 24px; border-radius: 24px; 
+            box-shadow: 0 12px 40px rgba(39, 174, 96, 0.15); 
+            text-align: center; 
+        }
+        .success-icon { font-size: 64px; margin-bottom: 20px; display: block; }
+        h1 { font-size: 24px; color: #2c3e50; margin: 0 0 8px 0; }
+        .doctor-name { color: var(--success); font-weight: 700; font-size: 22px; margin: 10px 0; display: block; }
+        
+        /* 強化操作引導區塊 */
+        .instruction-box {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 16px;
+            border: 1px solid #eee;
+        }
+        .instruction-item {
+            display: flex;
+            align-items: center;
+            text-align: left;
+            margin-bottom: 12px;
+            font-size: 15px;
+            color: #444;
+        }
+        .instruction-item:last-child { margin-bottom: 0; }
+        .step-num {
+            background: #2c3e50; color: white;
+            width: 22px; height: 22px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; margin-right: 10px; flex-shrink: 0;
+        }
+        .highlight-blue { color: #4a90e2; font-weight: bold; }
+
+        /* 弱化的返回連結：做成文字連結而不是大按鈕 */
+        .footer-link {
+            margin-top: 25px;
+            display: inline-block;
+            font-size: 14px;
+            color: #bbb;
+            text-decoration: none;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 2px;
+        }
     </style>
 </head>
 <body>
@@ -22,12 +65,21 @@
 <div class="card">
     <span class="success-icon">✅</span>
     <h1>操作成功</h1>
-    <p>醫師 <span class="doctor-highlight" id="name-txt">讀取中</span><br>
-       已完成 <span id="action-txt" style="font-weight:700;">---</span> 作業</p>
+    <span class="doctor-name" id="name-txt">讀取中...</span>
+    <p style="color:#666; margin: 0;">已完成 <b id="action-txt">---</b> 作業</p>
     
-    <a href="https://app.allon4-dental.tw/2026/gate.html" onclick="handleBack(event)" class="back-btn">完成 (返回相機)</a>
-    
-    <div class="hint">若視窗未關閉，請點擊按鈕<br>或左上角「✕」返回掃描</div>
+    <div class="instruction-box">
+        <div class="instruction-item">
+            <div class="step-num">1</div>
+            <div>點擊左上角 <span class="highlight-blue">「✕」</span> 或 <span class="highlight-blue">「返回」</span></div>
+        </div>
+        <div class="instruction-item">
+            <div class="step-num">2</div>
+            <div>即可 <span style="font-weight:bold; color:var(--success);">繼續掃描</span> 下一位</div>
+        </div>
+    </div>
+
+    <a href="gate.html" class="footer-link">回到首頁</a>
 </div>
 
 <script>
@@ -35,42 +87,24 @@
     const doctorName = params.get('name');
     const actionValue = params.get('action');
 
-    // 直接渲染醫師姓名
     document.getElementById('name-txt').textContent = doctorName || "醫師";
 
-    // 動作文字邏輯：支援英文代碼或中文直接傳入
     let displayAction = "處理";
     if (actionValue) {
         if (actionValue.includes('簽到') || actionValue === 'checkin') displayAction = "簽到";
         else if (actionValue.includes('簽退') || actionValue === 'checkout') displayAction = "簽退";
-        else displayAction = actionValue; // 廠商名稱
+        else displayAction = actionValue;
     }
     document.getElementById('action-txt').textContent = displayAction;
 
-    function handleBack(e) {
-        // 1. 嘗試 LINE 專用關閉
-        if (typeof WeixinJSBridge !== "undefined") {
-            WeixinJSBridge.call('closeWindow');
-            e.preventDefault();
-            return;
-        }
-        
-        // 2. 嘗試通用瀏覽器關閉 (通常僅在 window.open 開啟的視窗有效)
-        if (window.close()) {
-            e.preventDefault();
-            return;
-        }
-
-        // 3. 若都失敗，則會自動跳轉至 href 指向的 gate.html
-    }
-
-    // 自動嘗試關閉 (有些瀏覽器支援操作完後自動嘗試關閉視窗)
+    // 雖然按鈕不見了，但我們還是保留「自動嘗試關閉」的邏輯，萬一哪天 LINE 更新支援了呢？
     window.onload = function() {
-        setTimeout(() => {
-            if (typeof WeixinJSBridge !== "undefined") {
+        if (typeof WeixinJSBridge !== "undefined") {
+            // LINE 內建瀏覽器環境
+            setTimeout(() => {
                 WeixinJSBridge.call('closeWindow');
-            }
-        }, 3000); // 3秒後自動嘗試關閉
+            }, 2500); 
+        }
     };
 </script>
 </body>
