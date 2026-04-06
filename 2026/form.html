@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>牙材券消費確認</title>
+    <style>
+        :root { --primary: #4a90e2; --bg: #f5f7fa; --text: #2c3e50; --error: #e74c3c; }
+        body { font-family: -apple-system, "Noto Sans TC", sans-serif; background-color: var(--bg); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+        .card { background: white; width: 100%; max-width: 400px; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        .header { text-align: center; margin-bottom: 25px; }
+        h1 { font-size: 20px; color: var(--text); margin: 0; }
+        .form-group { margin-bottom: 18px; }
+        label { display: block; font-weight: bold; margin-bottom: 8px; color: #555; font-size: 14px; }
+        input { width: 100%; padding: 12px; border: 1.5px solid #eee; border-radius: 12px; font-size: 16px; box-sizing: border-box; transition: 0.2s; }
+        input:read-only { background-color: #f0f0f0; color: #888; border-color: #ddd; }
+        input:focus { outline: none; border-color: var(--primary); }
+        .btn { width: 100%; padding: 16px; font-size: 18px; font-weight: 600; border: none; border-radius: 12px; cursor: pointer; background: var(--primary); color: white; margin-top: 10px; }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
+        #msg { text-align: center; margin-top: 15px; font-weight: bold; min-height: 20px; }
+        .error-msg { color: var(--error); }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="header"><h1>💳 牙材券消費紀錄</h1></div>
+    <form id="consumeForm">
+        <div class="form-group">
+            <label>醫師姓名</label>
+            <input type="text" name="name" id="docName" readonly>
+        </div>
+
+        <div class="form-group">
+            <label>消費金額 (1000的倍數)</label>
+            <input type="number" name="amount" id="amount" placeholder="請輸入金額" required min="1000" step="1000">
+        </div>
+
+        <div class="form-group">
+            <label>服務廠商</label>
+            <input type="text" id="vendorDisplay" readonly>
+            <input type="hidden" name="vendor" id="vendorHidden">
+        </div>
+
+        <div class="form-group">
+            <label>身份證後四碼 (核對身分)</label>
+            <input type="password" name="password" id="password" placeholder="請由醫師輸入" required maxlength="4">
+        </div>
+
+        <div class="form-group">
+            <label>備註 (選填)</label>
+            <input type="text" name="note" placeholder="品名或用途">
+        </div>
+
+        <div id="msg"></div>
+        <button type="submit" id="submitBtn" class="btn">確認消費</button>
+    </form>
+</div>
+
+<script>
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycby6FiikxJFNCyjOwXGY4PxqSpd6W_UIfpUPa0y6w_0dN3-q3wiX-lkViG0jvQE8aWlz/exec'; 
+    let hiddenBalance = 0; // 隱藏變數，不顯示於前端畫面
+    let isReady = false;
+
+    window.onload = async function() {
+        const params = new URLSearchParams(window.location.search);
+        const name = params.get('id'); // 對應 QR Code: id=李執然
+        const vendor = localStorage.getItem('vendor_id');
+
+        document.getElementById('docName').value = name || "未知醫師";
+        document.getElementById('vendorDisplay').value = vendor || "未設定廠商";
+        document.getElementById('vendorHidden').value = vendor || "";
+
+        if (!name) {
+            updateMsg("❌ 錯誤：無法辨識醫師身分", true);
+            return;
+        }
+
+        // 背景靜默查詢餘額
+        try {
+            const resp = await fetch(`${GAS_URL}?action=checkBalance&name=${encodeURIComponent(name)}`);
+            const data = await resp.json();
+            if (data.status === "success") {
+                hiddenBalance = data.balance;
+                isReady = true;
+            } else {
+                updateMsg("❌ 查無醫師資料，請聯繫工作人員", true);
+            }
+        } catch (e) {
+            updateMsg("系統連線中...", false);
+            // 可能是網路延遲，1秒後重試一次
+        }
+    };
+
+    document.getElementById('consumeForm').onsubmit = function(e) {
+        e.preventDefault();
+        const amount = parseInt(document.getElementById('amount').value);
+        const btn = document.getElementById('submitBtn');
+
+        // 1. 金額格式檢查
+        if (amount % 1000 !== 0) {
+            updateMsg("❌ 金額必須是 1000 的倍數", true);
+            return;
+        }
+
+        // 2. 靜默餘額驗證（重點！）
+        if (isReady && amount > hiddenBalance) {
+            updateMsg("❌ 餘額不足，無法扣款", true);
+            // 清空金額欄位以示警示
+            document.getElementById('amount').value = "";
+            return;
+        }
+
+        btn.disabled = true;
+        updateMsg("處理中...", false);
+
+        const formData = new FormData(this);
+        const payload = Object.fromEntries(formData.entries());
+
+        // 使用 no-cors 模式發送
+        fetch(GAS_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify(payload)
+        });
+
+        // 直接跳轉至成功頁面
+        setTimeout(() => {
+            window.location.href = `vendor-success.html?name=${encodeURIComponent(payload.name)}&amount=${amount}&vendor=${encodeURIComponent(payload.vendor)}`;
+        }, 1200);
+    };
+
+    function updateMsg(text, isError) {
+        const m = document.getElementById('msg');
+        m.textContent = text;
+        m.className = isError ? "error-msg" : "";
+    }
+</script>
+</body>
+</html>

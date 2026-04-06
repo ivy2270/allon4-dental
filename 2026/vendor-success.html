@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>交易成功</title>
+    <style>
+        :root { --success: #27ae60; --bg: #f1f9f5; }
+        body { font-family: -apple-system, sans-serif; background-color: var(--bg); margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100dvh; }
+        .card { background: white; width: 85%; max-width: 350px; padding: 40px 24px; border-radius: 24px; box-shadow: 0 12px 40px rgba(39, 174, 96, 0.15); text-align: center; }
+        .success-icon { font-size: 64px; margin-bottom: 20px; display: block; }
+        h1 { font-size: 24px; color: #2c3e50; margin: 0 0 8px 0; }
+        .amount-tag { color: var(--success); font-weight: 700; font-size: 32px; margin: 15px 0; display: block; }
+        .instruction { margin-top: 25px; padding: 15px; background: #f8f9fa; border-radius: 16px; font-size: 14px; color: #666; line-height: 1.6; text-align: left; }
+        .footer-link { margin-top: 25px; display: inline-block; font-size: 13px; color: #ccc; text-decoration: none; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <span class="success-icon">✅</span>
+    <h1>消費成功</h1>
+    <p style="margin: 5px 0;">醫師：<span id="res-name">---</span></p>
+    <span class="amount-tag">NT$ <span id="res-amount">0</span></span>
+    <p style="color:#666; font-size: 14px;">廠商：<b id="res-vendor">---</b></p>
+    
+    <div class="instruction">
+        👉 <b>操作指引：</b><br>
+        請點擊左上角「✕」關閉此視窗，即可立即掃描下一位醫師。
+    </div>
+
+    <a href="gate.html" class="footer-link">返回系統首頁</a>
+</div>
+
+<script>
+    const params = new URLSearchParams(window.location.search);
+    document.getElementById('res-name').textContent = params.get('name') || "醫師";
+    document.getElementById('res-amount').textContent = params.get('amount') || "0";
+    document.getElementById('res-vendor').textContent = params.get('vendor') || "合作廠商";
+
+    // 自動嘗試關閉視窗 (LINE 適用)
+    window.onload = function() {
+        if (typeof WeixinJSBridge !== "undefined") {
+            setTimeout(() => { WeixinJSBridge.call('closeWindow'); }, 3000);
+        }
+    };
+</script>
+</body>
+</html>
