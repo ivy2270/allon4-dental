@@ -2,46 +2,126 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>操作成功</title>
     <style>
-        :root { --success: #27ae60; --bg: #f1f9f5; }
-        body { font-family: -apple-system, "Noto Sans TC", sans-serif; background-color: var(--bg); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-        .card { background: white; width: 90%; max-width: 400px; padding: 50px 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(39, 174, 96, 0.1); text-align: center; }
-        .success-icon { font-size: 64px; color: var(--success); margin-bottom: 20px; }
-        h1 { font-size: 28px; color: #2c3e50; margin: 0 0 10px; }
-        p { font-size: 18px; color: #5f6368; line-height: 1.6; margin-bottom: 35px; }
-        .doctor-highlight { color: var(--success); font-weight: bold; }
-        .back-btn { display: inline-block; width: 100%; padding: 16px; font-size: 18px; font-weight: 600; border: none; border-radius: 12px; background: #2c3e50; color: white; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-decoration: none; }
-        .back-btn:hover { background: #1a252f; transform: translateY(-2px); }
+        :root { 
+            --success: #27ae60; 
+            --bg: #f1f9f5; 
+            --card-shadow: rgba(39, 174, 96, 0.15);
+        }
+
+        /* 核心優化：使用 dvh 單位確保在手機網址列縮放時依然置中 */
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans TC", sans-serif;
+            background-color: var(--bg); 
+            margin: 0;
+            display: flex;
+            align-items: center; /* 垂直置中 */
+            justify-content: center; /* 水平置中 */
+            min-height: 100dvh; /* 動態視窗高度 */
+            overflow: hidden; /* 防止手機端不必要的捲動 */
+        }
+
+        .card { 
+            background: white; 
+            width: 85%; /* 稍微縮小寬度，讓左右呼吸空間更均勻 */
+            max-width: 350px; 
+            padding: 40px 24px; 
+            border-radius: 24px; 
+            box-shadow: 0 12px 40px var(--card-shadow); 
+            text-align: center;
+            /* 輕微的上移修正，視覺上會比幾何中心看起來更舒服 */
+            transform: translateY(-10px); 
+        }
+
+        .success-icon { 
+            font-size: 72px; 
+            line-height: 1;
+            margin-bottom: 24px; 
+            display: block;
+        }
+
+        h1 { 
+            font-size: 26px; 
+            color: #2c3e50; 
+            margin: 0 0 12px 0;
+            letter-spacing: 1px;
+        }
+
+        p { 
+            font-size: 18px; 
+            color: #5f6368; 
+            line-height: 1.6; 
+            margin: 0 0 35px 0; 
+        }
+
+        .doctor-highlight { 
+            color: var(--success); 
+            font-weight: 700; 
+            font-size: 20px;
+            display: inline-block;
+            border-bottom: 2px solid rgba(39, 174, 96, 0.2);
+            padding-bottom: 2px;
+        }
+
+        /* 針對按鈕點擊感的優化 */
+        .back-btn { 
+            display: block; 
+            width: 100%; 
+            padding: 16px 0; 
+            font-size: 18px; 
+            font-weight: 600; 
+            border: none; 
+            border-radius: 16px; 
+            background: #2c3e50; 
+            color: white; 
+            cursor: pointer; 
+            transition: transform 0.1s active; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+            text-decoration: none;
+            -webkit-tap-highlight-color: transparent; /* 去除手機點擊時的藍色方框 */
+        }
+
+        .back-btn:active { 
+            transform: scale(0.96); /* 按下去的縮放回饋 */
+            background: #1a252f;
+        }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div class="success-icon">✅</div>
+    <span class="success-icon">✅</span>
     <h1>操作成功</h1>
-    <p>醫師 <span class="doctor-highlight" id="name-txt">讀取中...</span><br>
+    <p>醫師 <span class="doctor-highlight" id="name-txt">載入中...</span><br>
        已完成 <span id="action-txt">---</span> 作業</p>
     
     <a href="https://app.allon4-dental.tw/2026/gate.html" onclick="handleBack(event)" class="back-btn">完成並掃描下一位</a>
 </div>
 
 <script>
+    // 取得網址參數
     const params = new URLSearchParams(window.location.search);
     const doctorName = params.get('name');
-    const actionName = params.get('action');
+    const actionValue = params.get('action');
 
-    // 顯示資訊
+    // 對應中文顯示
+    let actionChinese = "處理";
+    if (actionValue === 'checkin') actionChinese = "簽到";
+    if (actionValue === 'checkout') actionChinese = "簽退";
+    // 如果傳進來已經是中文（例如來自廠商模式），就直接顯示
+    if (actionValue && actionValue.length > 2) actionChinese = actionValue;
+
+    // 填充資訊
     document.getElementById('name-txt').textContent = doctorName || "未知";
-    document.getElementById('action-txt').textContent = actionName || "處理";
+    document.getElementById('action-txt').textContent = actionChinese;
 
     function handleBack(e) {
-        // 嘗試關閉視窗（適用於某些手機掃描器的內建瀏覽器）
+        // 嘗試關閉視窗，若失敗（非內置瀏覽器）則會自動走 href 連結
         if (window.close()) {
             e.preventDefault();
         }
-        // 如果沒關閉，就會執行預設連結跳轉回 gate.html
     }
 </script>
 
