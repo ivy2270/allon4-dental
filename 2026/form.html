@@ -39,7 +39,7 @@
         <div class="form-group">
             <label>廠商 (必選)</label>
             <select name="vendor" id="vendorSelect" required>
-                <option value="">-- 載入中... --</option>
+                <option value="">-- 載入中 --</option>
             </select>
         </div>
 
@@ -121,7 +121,7 @@
         const val = parseInt(this.value);
         if (!val) return;
         if (val % 1000 !== 0) updateMsg("❌ 金額必須是 1000 的倍數", true);
-        else if (isReady && val > hiddenBalance) updateMsg(`❌ 餘額不足 (剩餘: ${hiddenBalance})`, true);
+        else if (isReady && val > hiddenBalance) updateMsg(`❌ 餘額不足`, true);
         else updateMsg("金額檢查 OK", false);
     });
 
