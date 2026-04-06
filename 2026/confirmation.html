@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>確認報到資訊</title>
+    <style>
+        :root { --primary: #4a90e2; --bg: #f5f7fa; --text: #2c3e50; }
+        body { font-family: -apple-system, "Noto Sans TC", sans-serif; background-color: var(--bg); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .card { background: white; width: 90%; max-width: 400px; padding: 40px 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: center; }
+        .icon { font-size: 48px; margin-bottom: 20px; display: inline-block; }
+        h1 { font-size: 24px; color: var(--text); margin: 0 0 15px; }
+        .info-box { background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 30px; text-align: left; border-left: 4px solid var(--primary); }
+        .info-row { margin: 8px 0; font-size: 16px; color: #555; }
+        .info-label { font-weight: bold; color: var(--text); margin-right: 8px; }
+        .btn { width: 100%; padding: 16px; font-size: 18px; font-weight: 600; border: none; border-radius: 12px; cursor: pointer; transition: all 0.2s; background: var(--primary); color: white; box-shadow: 0 4px 15px rgba(74, 144, 226, 0.3); }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(74, 144, 226, 0.4); }
+        .btn:disabled { background: #ccc; box-shadow: none; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="icon">📝</div>
+    <h1>確認報到資訊</h1>
+    <div class="info-box">
+        <div class="info-row"><span class="info-label">姓名：</span><span id="name-txt">讀取中...</span></div>
+        <div class="info-row"><span class="info-label">編號：</span><span id="id-txt">---</span></div>
+        <div class="info-row"><span class="info-label">動作：</span><span id="action-txt" style="color: #e67e22; font-weight: bold;">---</span></div>
+    </div>
+
+    <button id="submit-btn" class="btn">確認提交</button>
+</div>
+
+<script>
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbzmUqDhEExlbShpr7IQWfkuCSVt3CQAbKTZAV8bx8P4qOryYPx3VAd3fm03a9434GOb/exec"; 
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+    const name = params.get('name');
+    const action = params.get('action') || 'checkin';
+    const actionChinese = action === 'checkin' ? '簽到' : '簽退';
+
+    document.getElementById('name-txt').textContent = name || '未知';
+    document.getElementById('id-txt').textContent = id || '---';
+    document.getElementById('action-txt').textContent = actionChinese;
+
+    document.getElementById('submit-btn').onclick = async function() {
+        if (!id || !name) return alert("資料不完整");
+        
+        this.disabled = true;
+        this.textContent = "處理中...";
+
+        try {
+            // 發送資料給 GAS
+            await fetch(GAS_URL, {
+                method: "POST",
+                mode: "no-cors",
+                body: JSON.stringify({ id, name, action })
+            });
+
+            // 跳轉至成功頁面
+            window.location.href = `success.html?name=${encodeURIComponent(name)}&id=${encodeURIComponent(id)}&action=${encodeURIComponent(actionChinese)}`;
+        } catch (err) {
+            alert("連線失敗，請重試");
+            this.disabled = false;
+            this.textContent = "確認提交";
+        }
+    };
+</script>
+
+</body>
+</html>

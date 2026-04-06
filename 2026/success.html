@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>操作成功</title>
+    <style>
+        :root { --success: #27ae60; --bg: #f1f9f5; }
+        body { font-family: -apple-system, "Noto Sans TC", sans-serif; background-color: var(--bg); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .card { background: white; width: 90%; max-width: 400px; padding: 50px 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(39, 174, 96, 0.1); text-align: center; }
+        .success-icon { font-size: 64px; color: var(--success); margin-bottom: 20px; }
+        h1 { font-size: 28px; color: #2c3e50; margin: 0 0 10px; }
+        p { font-size: 18px; color: #5f6368; line-height: 1.6; margin-bottom: 35px; }
+        .doctor-highlight { color: var(--success); font-weight: bold; }
+        .back-btn { display: inline-block; width: 100%; padding: 16px; font-size: 18px; font-weight: 600; text-decoration: none; border-radius: 12px; background: #2c3e50; color: white; transition: all 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .back-btn:hover { background: #1a252f; transform: translateY(-2px); }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="success-icon">✅</div>
+    <h1>操作成功</h1>
+    <p>醫師 <span class="doctor-highlight" id="name-txt"></span><br>
+       已完成 <span id="action-txt"></span> 作業</p>
+    
+    <a href="你的_gate.html_網址" id="back-link" class="back-btn">掃描下一位</a>
+</div>
+
+<script>
+    const params = new URLSearchParams(window.location.search);
+    document.getElementById('name-txt').textContent = params.get('name');
+    document.getElementById('action-txt').textContent = params.get('action');
+
+    // 這裡可以根據需要更新返回掃描頁的連結
+    // 如果你有一個統一的 gate.html 網址，建議放在這裡
+</script>
+
+</body>
+</html>
