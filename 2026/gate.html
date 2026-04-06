@@ -42,31 +42,40 @@
     };
 
     const params = new URLSearchParams(window.location.search);
-    const name = params.get('name');
-    const id = params.get('id');
+    const name = params.get('name'); // 醫師 QR Code 參數
+    const id = params.get('id');     // 醫師 QR Code 參數
+    
+    // 身分設定參數
     const setRole = params.get('role');
-    const setVendor = params.get('vendor');
-    const setAction = params.get('action'); // 支援從登入碼設定 action
+    const setVendor = params.get('vendor'); // 配合你的網址使用 vendor=01海昌
+    const setAction = params.get('action');
 
-    // 1. 身分設定邏輯 (工作人員初始化)
-    if (setRole === 'checkin') {
-        const action = setAction || 'checkin';
-        localStorage.setItem('work_mode', 'checkin');
-        localStorage.setItem('work_action', action); // 儲存簽到或簽退模式
-        localStorage.removeItem('work_vendor');
-        showConfigSuccess(action === 'checkin' ? "報到處 (簽到模式)" : "報到處 (簽退模式)");
+    // --- 1. 【核心修正】優先處理身分切換 ---
+    // 如果網址帶有 role 或 vendor 參數，代表這是一個「身分設定行為」，必須強制覆蓋 localStorage
+    if (setRole === 'checkin' || setVendor) {
+        if (setRole === 'checkin') {
+            const action = setAction || 'checkin';
+            localStorage.setItem('work_mode', 'checkin');
+            localStorage.setItem('work_action', action);
+            localStorage.removeItem('work_vendor'); // 清除廠商快取防止混淆
+            showConfigSuccess(action === 'checkin' ? "報到處 (簽到模式)" : "報到處 (簽退模式)");
+        } 
+        else if (setVendor) {
+            localStorage.setItem('work_mode', 'vendor');
+            localStorage.setItem('work_vendor', setVendor);
+            localStorage.removeItem('work_action'); // 清除簽到快取防止混淆
+            showConfigSuccess(`廠商：${setVendor}`);
+        }
     } 
-    else if (setVendor) {
-        localStorage.setItem('work_mode', 'vendor');
-        localStorage.setItem('work_vendor', setVendor);
-        showConfigSuccess(setVendor);
-    } 
-    // 2. 自動導向邏輯 (正式掃描醫師時)
-    else if (name && id) {
+    // --- 2. 自動導向邏輯 (掃描醫師 QR Code 時) ---
+    else if (id) { // 只要有 id 就代表在掃醫師
         const currentMode = localStorage.getItem('work_mode');
         const currentVendor = localStorage.getItem('work_vendor');
         const currentAction = localStorage.getItem('work_action') || 'checkin';
-        const commonParams = `?id=${encodeURIComponent(id)}&name=${encodeURIComponent(name)}`;
+        
+        // 統一參數：使用 id 與 name (如果 name 為空則不傳或傳空)
+        const docName = name || "";
+        const commonParams = `?id=${encodeURIComponent(id)}&name=${encodeURIComponent(docName)}`;
 
         if (currentMode === 'checkin') {
             const modeText = currentAction === 'checkin' ? "簽到" : "簽退";
@@ -75,18 +84,21 @@
         } 
         else if (currentMode === 'vendor') {
             updateStatus(`識別為：${currentVendor}`, "正在開啟消費表單...");
+            // 注意：這裡將 vendor 傳給 form.html
             window.location.href = CONFIG.spendPage + commonParams + `&vendor=${encodeURIComponent(currentVendor)}`;
         } 
         else {
             showError();
         }
-    } else {
+    } 
+    // --- 3. 預設狀態顯示 ---
+    else {
         const currentMode = localStorage.getItem('work_mode');
         if (currentMode) {
             const modeName = currentMode === 'checkin' ? 
                 (localStorage.getItem('work_action') === 'checkout' ? "報到處 (簽退)" : "報到處 (簽到)") : 
                 localStorage.getItem('work_vendor');
-            updateStatus("系統就緒", `目前模式：${modeName}<br>請直接掃描醫師 QR Code`);
+            updateStatus("系統就緒", `目前模式：<span class="highlight">${modeName}</span><br>請直接掃描醫師 QR Code`);
         } else {
             showError();
         }
@@ -103,11 +115,15 @@
     }
 
     function showConfigSuccess(identity) {
+        document.getElementById('loading-ui').style.display = 'block';
+        document.getElementById('error-ui').style.display = 'none';
         document.getElementById('status-title').textContent = "設定成功！";
-        document.getElementById('status-msg').innerHTML = `已鎖定身分為：<br><span class="highlight">${identity}</span><br><br>稍後將自動重整...`;
+        document.getElementById('status-msg').innerHTML = `已鎖定身分為：<br><span class="highlight">${identity}</span><br><br>正在切換模式...`;
+        
+        // 延遲一下讓使用者看清楚身分，然後導向不帶參數的 Gate 頁面（清除網址列參數）
         setTimeout(() => {
-            window.location.href = window.location.pathname;
-        }, 2000);
+            window.location.href = window.location.origin + window.location.pathname;
+        }, 1500);
     }
 </script>
 </body>
