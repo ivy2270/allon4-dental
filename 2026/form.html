@@ -102,19 +102,33 @@
     }
 
     async function fetchBalance(name) {
-        isReady = false;
+        if (!name) return;
+        
+        isReady = false; // 先重設狀態
         updateMsg("正在核對醫師資料...", false);
+        
         try {
             const resp = await fetch(`${GAS_URL}?action=checkBalance&name=${encodeURIComponent(name)}`);
             const data = await resp.json();
+            
+            // 嚴格判定：status 必須是 success
             if (data.status === "success") {
-                hiddenBalance = data.balance;
+                hiddenBalance = data.balance; // 這裡是數字
                 isReady = true;
                 updateMsg("✅ 醫師資料核對成功", false);
+                document.getElementById('docName').style.borderColor = "#eee";
             } else {
-                updateMsg("❌ 找不到此醫師資料", true);
+                // 這裡會抓到 GAS 回傳的 "查無此醫師"
+                hiddenBalance = 0;
+                isReady = false;
+                updateMsg("❌ 找不到此醫師資料，請檢查姓名是否有誤", true);
+                document.getElementById('docName').style.borderColor = "red";
+                // 也可以清空輸入框或提醒使用者
             }
-        } catch (e) { updateMsg("⚠️ 網路連線延遲", true); }
+        } catch (e) {
+            updateMsg("⚠️ 網路連線異常，請重新輸入姓名", true);
+            isReady = false;
+        }
     }
 
     document.getElementById('amount').addEventListener('blur', function() {
