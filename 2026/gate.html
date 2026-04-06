@@ -14,6 +14,7 @@
         .status-msg { font-size: 15px; color: #777; line-height: 1.5; }
         .warning-icon { font-size: 48px; margin-bottom: 15px; }
         .highlight { color: var(--primary); font-weight: bold; }
+        .btn-manual { margin-top: 20px; padding: 12px 24px; background: var(--primary); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block; }
     </style>
 </head>
 <body>
@@ -35,70 +36,61 @@
 </div>
 
 <script>
-    // --- 🛠 核心配置區 🛠 ---
     const CONFIG = {
         checkinPage: "https://app.allon4-dental.tw/2026/confirmation.html", 
         spendPage: "https://app.allon4-dental.tw/2026/form.html" 
     };
 
     const params = new URLSearchParams(window.location.search);
-    const name = params.get('name'); // 醫師 QR Code 參數
-    const id = params.get('id');     // 醫師 QR Code 參數
-    
-    // 身分設定參數
+    const id = params.get('id');
+    const name = params.get('name');
     const setRole = params.get('role');
-    const setVendor = params.get('vendor'); // 配合你的網址使用 vendor=01海昌
+    const setVendor = params.get('vendor');
     const setAction = params.get('action');
 
-    // --- 1. 【核心修正】優先處理身分切換 ---
-    // 如果網址帶有 role 或 vendor 參數，代表這是一個「身分設定行為」，必須強制覆蓋 localStorage
+    // 1. 優先處理身分切換 (強制覆蓋)
     if (setRole === 'checkin' || setVendor) {
         if (setRole === 'checkin') {
             const action = setAction || 'checkin';
             localStorage.setItem('work_mode', 'checkin');
             localStorage.setItem('work_action', action);
-            localStorage.removeItem('work_vendor'); // 清除廠商快取防止混淆
-            showConfigSuccess(action === 'checkin' ? "報到處 (簽到模式)" : "報到處 (簽退模式)");
-        } 
-        else if (setVendor) {
+            localStorage.removeItem('work_vendor');
+            showConfigSuccess(action === 'checkin' ? "報到處 (簽到)" : "報到處 (簽退)");
+        } else if (setVendor) {
             localStorage.setItem('work_mode', 'vendor');
             localStorage.setItem('work_vendor', setVendor);
-            localStorage.removeItem('work_action'); // 清除簽到快取防止混淆
+            localStorage.removeItem('work_action');
             showConfigSuccess(`廠商：${setVendor}`);
         }
     } 
-    // --- 2. 自動導向邏輯 (掃描醫師 QR Code 時) ---
-    else if (id) { // 只要有 id 就代表在掃醫師
+    // 2. 自動導向 (掃描醫師 QR Code)
+    else if (id) {
         const currentMode = localStorage.getItem('work_mode');
         const currentVendor = localStorage.getItem('work_vendor');
         const currentAction = localStorage.getItem('work_action') || 'checkin';
-        
-        // 統一參數：使用 id 與 name (如果 name 為空則不傳或傳空)
-        const docName = name || "";
-        const commonParams = `?id=${encodeURIComponent(id)}&name=${encodeURIComponent(docName)}`;
+        const commonParams = `?id=${encodeURIComponent(id)}&name=${encodeURIComponent(name || "")}`;
 
         if (currentMode === 'checkin') {
-            const modeText = currentAction === 'checkin' ? "簽到" : "簽退";
-            updateStatus(`識別為：報到處 (${modeText})`, "正在開啟確認頁面...");
             window.location.href = CONFIG.checkinPage + commonParams + `&action=${currentAction}`;
-        } 
-        else if (currentMode === 'vendor') {
-            updateStatus(`識別為：${currentVendor}`, "正在開啟消費表單...");
-            // 注意：這裡將 vendor 傳給 form.html
+        } else if (currentMode === 'vendor') {
             window.location.href = CONFIG.spendPage + commonParams + `&vendor=${encodeURIComponent(currentVendor)}`;
-        } 
-        else {
+        } else {
             showError();
         }
     } 
-    // --- 3. 預設狀態顯示 ---
+    // 3. 預設狀態 (等待掃描或點擊手動進入)
     else {
         const currentMode = localStorage.getItem('work_mode');
         if (currentMode) {
             const modeName = currentMode === 'checkin' ? 
                 (localStorage.getItem('work_action') === 'checkout' ? "報到處 (簽退)" : "報到處 (簽到)") : 
                 localStorage.getItem('work_vendor');
-            updateStatus("系統就緒", `目前模式：<span class="highlight">${modeName}</span><br>請直接掃描醫師 QR Code`);
+            
+            let manualHtml = "";
+            if (currentMode === 'vendor') {
+                manualHtml = `<br><a href="${CONFIG.spendPage}" class="btn-manual">手動開啟消費表單</a>`;
+            }
+            updateStatus("系統就緒", `目前身分：<span class="highlight">${modeName}</span><br>請掃描醫師 QR Code 或點選下方按鈕${manualHtml}`);
         } else {
             showError();
         }
@@ -115,12 +107,8 @@
     }
 
     function showConfigSuccess(identity) {
-        document.getElementById('loading-ui').style.display = 'block';
-        document.getElementById('error-ui').style.display = 'none';
         document.getElementById('status-title').textContent = "設定成功！";
-        document.getElementById('status-msg').innerHTML = `已鎖定身分為：<br><span class="highlight">${identity}</span><br><br>正在切換模式...`;
-        
-        // 延遲一下讓使用者看清楚身分，然後導向不帶參數的 Gate 頁面（清除網址列參數）
+        document.getElementById('status-msg').innerHTML = `已鎖定：<span class="highlight">${identity}</span><br>正在切換模式...`;
         setTimeout(() => {
             window.location.href = window.location.origin + window.location.pathname;
         }, 1500);
