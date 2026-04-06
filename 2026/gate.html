@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>身分識別中 - 醫師服務系統</title>
+    <style>
+        :root { --primary: #4a90e2; --bg: #f5f7fa; --text: #2c3e50; --success: #27ae60; }
+        body { font-family: -apple-system, "Noto Sans TC", sans-serif; background-color: var(--bg); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; color: var(--text); }
+        .card { background: white; width: 90%; max-width: 400px; padding: 40px 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: center; }
+        
+        /* 載入動畫 */
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .status-title { font-size: 20px; font-weight: bold; margin-bottom: 10px; }
+        .status-msg { font-size: 15px; color: #777; line-height: 1.5; }
+        
+        /* 尚未設定身分時的警告樣式 */
+        .warning-icon { font-size: 48px; margin-bottom: 15px; }
+        .highlight { color: var(--primary); font-weight: bold; }
+        
+        /* 設定成功時的提示 */
+        .alert-box { background: #e8f5e9; color: #2e7d32; padding: 15px; border-radius: 12px; margin-top: 20px; font-weight: bold; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="card" id="main-card">
+    <div id="loading-ui">
+        <div class="loader"></div>
+        <div class="status-title" id="status-title">正在識別身分...</div>
+        <div class="status-msg" id="status-msg">請稍候，正在為您導向正確的系統</div>
+    </div>
+
+    <div id="error-ui" style="display:none;">
+        <div class="warning-icon">⚠️</div>
+        <div class="status-title">尚未設定工作身分</div>
+        <div class="status-msg">
+            請先掃描您工作位子上的<br><span class="highlight">「身分登入 QR Code」</span><br>以利系統自動識別報到處或廠商。
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- 🛠 核心配置區 🛠 ---
+    const CONFIG = {
+        // 請填入您 GitHub 上對應頁面的完整 URL
+        checkinPage: "https://你的帳號.github.io/專案名/confirmation.html", 
+        spendPage: "https://你的帳號.github.io/專案名/consumption.html" 
+    };
+
+    const params = new URLSearchParams(window.location.search);
+    const name = params.get('name');
+    const id = params.get('id');
+    const setRole = params.get('role');
+    const setVendor = params.get('vendor');
+
+    // 1. 身分設定邏輯 (工作人員初始化)
+    if (setRole === 'checkin') {
+        localStorage.setItem('work_mode', 'checkin');
+        localStorage.removeItem('work_vendor');
+        showConfigSuccess("報到處工作人員");
+    } 
+    else if (setVendor) {
+        localStorage.setItem('work_mode', 'vendor');
+        localStorage.setItem('work_vendor', setVendor);
+        showConfigSuccess(setVendor);
+    } 
+    // 2. 自動導向邏輯 (正式掃描醫師時)
+    else if (name && id) {
+        const currentMode = localStorage.getItem('work_mode');
+        const currentVendor = localStorage.getItem('work_vendor');
+        const commonParams = `?id=${encodeURIComponent(id)}&name=${encodeURIComponent(name)}`;
+
+        if (currentMode === 'checkin') {
+            updateStatus("識別為：報到處", "正在開啟確認頁面...");
+            window.location.href = CONFIG.checkinPage + commonParams + `&action=checkin`;
+        } 
+        else if (currentMode === 'vendor') {
+            updateStatus(`識別為：${currentVendor}`, "正在開啟消費表單...");
+            window.location.href = CONFIG.spendPage + commonParams + `&vendor=${encodeURIComponent(currentVendor)}`;
+        } 
+        else {
+            showError();
+        }
+    } else {
+        // 如果只是空手打開 gate.html，檢查是否有身分
+        const currentMode = localStorage.getItem('work_mode');
+        if (currentMode) {
+            updateStatus("系統就緒", `目前模式：${currentMode === 'checkin' ? '報到處' : localStorage.getItem('work_vendor')}<br>請直接掃描醫師 QR Code`);
+        } else {
+            showError();
+        }
+    }
+
+    // --- UI 輔助函式 ---
+    function updateStatus(title, msg) {
+        document.getElementById('status-title').textContent = title;
+        document.getElementById('status-msg').innerHTML = msg;
+    }
+
+    function showError() {
+        document.getElementById('loading-ui').style.display = 'none';
+        document.getElementById('error-ui').style.display = 'block';
+    }
+
+    function showConfigSuccess(identity) {
+        document.getElementById('status-title').textContent = "設定成功！";
+        document.getElementById('status-msg').innerHTML = `已鎖定身分為：<br><span class="highlight">${identity}</span><br><br>稍後將自動重整...`;
+        setTimeout(() => {
+            window.location.href = window.location.pathname; // 清除 URL 參數回到乾淨的 gate.html
+        }, 2000);
+    }
+</script>
+
+</body>
+</html>
