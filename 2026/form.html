@@ -6,7 +6,7 @@
     <title>牙材券消費</title>
     <style>
         :root { --primary: #4a90e2; --bg: #f5f7fa; --text: #2c3e50; --error: #e74c3c; }
-        body { font-family: -apple-system, "Noto Sans TC", sans-serif; background-color: var(--bg); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+        body { font-family: -apple-system, "Noto Sans TC", sans-serif; background-color: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
         .card { background: white; width: 100%; max-width: 400px; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
         .header { text-align: center; margin-bottom: 25px; }
         h1 { font-size: 20px; color: var(--text); margin: 0; }
@@ -19,6 +19,22 @@
         .btn:disabled { background: #ccc; cursor: not-allowed; }
         #msg { text-align: center; margin-top: 15px; font-weight: bold; min-height: 20px; }
         .error-msg { color: var(--error); }
+        /* 修正 2: 幫 footer 加上不起眼的樣式 (取代 Tailwind) */
+    .custom-footer {
+        margin-top: 30px;
+        padding-bottom: 20px;
+        text-align: center;
+        color: #bdc3c7; /* 很淡的灰色 */
+        font-size: 11px;
+    }
+    .custom-footer a {
+        color: #bdc3c7;
+        text-decoration: none;
+        margin-left: 5px;
+    }
+    .custom-footer a:hover {
+        text-decoration: underline;
+    }
     </style>
 </head>
 <body>
@@ -60,7 +76,7 @@
     <footer class="mt-12 pb-8 text-center">
     <p class="text-gray-300 text-xs">
         System Version 2.4.1 | 
-        <a href="javascript:void(0);" onclick="resetWorkMode()" class="hover:text-gray-400">重置裝置身分</a>
+        <a href="javascript:void(0);" onclick="resetWorkMode()" class="hover:text-gray-400">重置身分</a>
     </p>
 </footer>
 
