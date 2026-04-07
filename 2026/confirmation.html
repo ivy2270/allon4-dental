@@ -30,6 +30,12 @@
     </div>
     <button id="submit-btn" class="btn">確認提交</button>
 </div>
+<footer class="mt-12 pb-8 text-center">
+    <p class="text-gray-300 text-xs">
+        System Version 2.4.1 | 
+        <a href="javascript:void(0);" onclick="resetWorkMode()" class="hover:text-gray-400">重置裝置身分</a>
+    </p>
+</footer>    
 
 <script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbzmUqDhEExlbShpr7IQWfkuCSVt3CQAbKTZAV8bx8P4qOryYPx3VAd3fm03a9434GOb/exec"; 
@@ -66,6 +72,18 @@
             this.textContent = "確認提交";
         }
     };
+
+    function resetWorkMode() {
+    if (confirm("確定要清除目前的工作身分（報到處/廠商名稱）並重新設定嗎？")) {
+        // 清除所有相關暫存
+        localStorage.removeItem('work_mode');
+        localStorage.removeItem('work_vendor');
+        localStorage.removeItem('work_action');
+        
+        // 引導回 gate.html 且不帶參數，讓它顯示「尚未設定身分」的 UI
+        window.location.href = "gate.html";
+    }
+}
 </script>
 </body>
 </html>
