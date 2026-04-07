@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>身分識別中 - 醫師服務系統</title>
+    <style>
+        :root { --primary: #4a90e2; --bg: #f5f7fa; --text: #2c3e50; --success: #27ae60; --doctor: #8e44ad; }
+        body { font-family: -apple-system, "Noto Sans TC", sans-serif; background-color: var(--bg); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; color: var(--text); }
+        .card { background: white; width: 90%; max-width: 400px; padding: 40px 30px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); text-align: center; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .status-title { font-size: 22px; font-weight: bold; margin-bottom: 12px; }
+        .status-msg { font-size: 16px; color: #666; line-height: 1.6; }
+        .warning-icon { font-size: 48px; margin-bottom: 15px; }
+        .highlight { color: var(--primary); font-weight: bold; }
+        .btn-group { display: flex; flex-direction: column; gap: 12px; margin-top: 25px; }
+        .btn { padding: 14px 24px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block; transition: all 0.2s; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-doctor { background: var(--doctor); color: white; }
+        .btn-outline { background: white; color: #777; border: 1px solid #ddd; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<div class="card" id="main-card">
+    <div id="loading-ui">
+        <div class="loader"></div>
+        <div class="status-title" id="status-title">正在識別身分...</div>
+        <div class="status-msg" id="status-msg">請稍候，正在為您導向正確的系統</div>
+    </div>
+
+    <div id="error-ui" style="display:none;">
+        <div class="warning-icon">⚠️</div>
+        <div class="status-title">尚未設定工作身分</div>
+        <div class="status-msg">
+            請先掃描您工作位子上的<br><span class="highlight">「身分登入 QR Code」</span><br>以利系統自動識別報到處或廠商。
+        </div>
+        <div class="btn-group">
+            <a href="doctor_query.html" class="btn btn-doctor">醫師個人查詢入口</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    const CONFIG = {
+        checkinPage: "https://app.allon4-dental.tw/2026/confirmation.html", 
+        spendPage: "https://app.allon4-dental.tw/2026/form.html",
+        queryPage: "https://app.allon4-dental.tw/2026/doctor_query.html" // 新增查詢頁路徑
+    };
+
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id'); // 醫師姓名
+    const name = params.get('name'); // 醫師編號
+    const setRole = params.get('role');
+    const setVendor = params.get('vendor');
+    const setAction = params.get('action');
+
+    // 1. 處理身分切換 (報到處或廠商登入工作位置)
+    if (setRole === 'checkin' || setVendor) {
+        if (setRole === 'checkin') {
+            const action = setAction || 'checkin';
+            localStorage.setItem('work_mode', 'checkin');
+            localStorage.setItem('work_action', action);
+            localStorage.removeItem('work_vendor');
+            showConfigSuccess(action === 'checkin' ? "報到處 (簽到)" : "報到處 (簽退)");
+        } else if (setVendor) {
+            localStorage.setItem('work_mode', 'vendor');
+            localStorage.setItem('work_vendor', setVendor);
+            localStorage.removeItem('work_action');
+            showConfigSuccess(`廠商：${setVendor}`);
+        }
+    } 
+    // 2. 自動導向邏輯 (當掃描到醫師 QR Code 時)
+    else if (id) {
+        const currentMode = localStorage.getItem('work_mode');
+        const currentVendor = localStorage.getItem('work_vendor');
+        const currentAction = localStorage.getItem('work_action') || 'checkin';
+        const commonParams = `?id=${encodeURIComponent(id)}&name=${encodeURIComponent(name || "")}`;
+
+        if (currentMode === 'checkin') {
+            // 導向報到頁
+            window.location.href = CONFIG.checkinPage + commonParams + `&action=${currentAction}`;
+        } else if (currentMode === 'vendor') {
+            // 導向消費頁
+            window.location.href = CONFIG.spendPage + commonParams + `&vendor=${encodeURIComponent(currentVendor)}`;
+        } else {
+            // 雖然沒設定模式，但有 id，代表醫師可能想看自己的資料
+            updateStatus("您好，" + id + " 醫師", "偵測到您的身分，請選擇操作：");
+            showDoctorOptions(id);
+        }
+    } 
+    // 3. 預設狀態 (等待掃描)
+    else {
+        const currentMode = localStorage.getItem('work_mode');
+        if (currentMode) {
+            const modeName = currentMode === 'checkin' ? 
+                (localStorage.getItem('work_action') === 'checkout' ? "報到處 (簽退)" : "報到處 (簽到)") : 
+                localStorage.getItem('work_vendor');
+            
+            let actionHtml = `
+                <div class="btn-group">
+                    <a href="${CONFIG.queryPage}" class="btn btn-doctor">醫師個人中心 (查詢)</a>
+                    <button onclick="clearRole()" class="btn btn-outline">清除並重新設定工作身分</button>
+                </div>
+            `;
+            updateStatus("系統就緒", `目前身分：<span class="highlight">${modeName}</span><br>請直接掃描醫師 QR Code<br>${actionHtml}`);
+        } else {
+            showError();
+        }
+    }
+
+    function updateStatus(title, msg) {
+        document.getElementById('status-title').textContent = title;
+        document.getElementById('status-msg').innerHTML = msg;
+    }
+
+    function showDoctorOptions(doctorId) {
+        const ui = document.getElementById('loading-ui');
+        // 隱藏 Loader
+        ui.querySelector('.loader').style.display = 'none';
+        
+        const btnGroup = document.createElement('div');
+        btnGroup.className = 'btn-group';
+        btnGroup.innerHTML = `
+            <a href="${CONFIG.queryPage}?id=${encodeURIComponent(doctorId)}" class="btn btn-doctor text-lg">進入個人查詢中心</a>
+            <p style="font-size:13px; color:#999; margin-top:10px;">提醒：若要執行報到或消費，請先讓工作人員掃描</p>
+        `;
+        ui.appendChild(btnGroup);
+    }
+
+    function showError() {
+        document.getElementById('loading-ui').style.display = 'none';
+        document.getElementById('error-ui').style.display = 'block';
+    }
+
+    function clearRole() {
+        if(confirm("確定要清除目前的工作身分設定嗎？")) {
+            localStorage.clear();
+            location.reload();
+        }
+    }
+
+    function showConfigSuccess(identity) {
+        document.getElementById('status-title').textContent = "設定成功！";
+        document.getElementById('status-msg').innerHTML = `已鎖定：<span class="highlight">${identity}</span><br>正在重啟掃描模式...`;
+        setTimeout(() => {
+            window.location.href = window.location.origin + window.location.pathname;
+        }, 1500);
+    }
+</script>
+</body>
+</html>
