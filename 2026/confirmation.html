@@ -2,45 +2,84 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>確認資訊 - 醫師服務系統</title>
     <style>
         :root { --primary: #4a90e2; --bg: #f5f7fa; --text: #2c3e50; }
+        
+        * { box-sizing: border-box; } /* 確保 padding 不會撐大寬度 */
+
         body { 
-        font-family: -apple-system, "Noto Sans TC", sans-serif; 
-        background-color: var(--bg); 
-        display: flex; 
-        flex-direction: column; /* 強制垂直排列 */
-        align-items: center; 
-        justify-content: center; 
-        min-height: 100vh; 
-        margin: 0; 
-    }
-        .card { background: white; width: 90%; max-width: 400px; padding: 40px 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: center; }
+            font-family: -apple-system, "Noto Sans TC", sans-serif; 
+            background-color: var(--bg); 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            overflow-x: hidden; /* 徹底禁止左右滑動 */
+        }
+
+        .card { 
+            background: white; 
+            width: 90%; 
+            max-width: 380px; /* 稍微縮小一點點點，確保 RWD 安全距離 */
+            padding: 30px 20px; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05); 
+            text-align: center; 
+            margin: 20px 0; /* 增加上下間距 */
+        }
+
         .icon { font-size: 48px; margin-bottom: 20px; display: inline-block; }
-        h1 { font-size: 24px; color: var(--text); margin: 0 0 15px; }
-        .info-box { background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 30px; text-align: left; border-left: 4px solid var(--primary); }
-        .info-row { margin: 8px 0; font-size: 16px; color: #555; }
+        h1 { font-size: 22px; color: var(--text); margin: 0 0 15px; }
+        
+        .info-box { 
+            background: #f8f9fa; 
+            padding: 15px; 
+            border-radius: 12px; 
+            margin-bottom: 25px; 
+            text-align: left; 
+            border-left: 4px solid var(--primary); 
+        }
+        
+        .info-row { margin: 10px 0; font-size: 15px; color: #555; }
         .info-label { font-weight: bold; color: var(--text); margin-right: 8px; }
-        .btn { width: 100%; padding: 16px; font-size: 18px; font-weight: 600; border: none; border-radius: 12px; cursor: pointer; transition: all 0.2s; background: var(--primary); color: white; box-shadow: 0 4px 15px rgba(74, 144, 226, 0.3); }
+        
+        .btn { 
+            width: 100%; 
+            padding: 16px; 
+            font-size: 18px; 
+            font-weight: 600; 
+            border: none; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            transition: all 0.2s; 
+            background: var(--primary); 
+            color: white; 
+            box-shadow: 0 4px 15px rgba(74, 144, 226, 0.3); 
+        }
         .btn:active { transform: scale(0.98); }
         .btn:disabled { background: #ccc; box-shadow: none; cursor: not-allowed; }
-        /* 修正 2: 幫 footer 加上不起眼的樣式 (取代 Tailwind) */
-    .custom-footer {
-        margin-top: 30px;
-        padding-bottom: 20px;
-        text-align: center;
-        color: #bdc3c7; /* 很淡的灰色 */
-        font-size: 11px;
-    }
-    .custom-footer a {
-        color: #bdc3c7;
-        text-decoration: none;
-        margin-left: 5px;
-    }
-    .custom-footer a:hover {
-        text-decoration: underline;
-    }
+
+        /* 終極隱藏版 Footer */
+        .custom-footer {
+            margin-top: 10px;
+            padding-bottom: 20px;
+            text-align: center;
+            color: #d1d8dd; /* 與背景色極度接近 */
+            font-size: 10px;
+            letter-spacing: 0.5px;
+        }
+        .custom-footer a {
+            color: #d1d8dd; /* 讓超連結看起來像普通文字 */
+            text-decoration: none; /* 移除底線 */
+            cursor: default; /* 連游標都不要變，增加隱蔽性 */
+        }
+        .custom-footer a:active, .custom-footer a:hover {
+            color: #bdc3c7; /* 只有點擊或碰觸時稍微變深 */
+        }
     </style>
 </head>
 <body>
@@ -55,12 +94,13 @@
     </div>
     <button id="submit-btn" class="btn">確認提交</button>
 </div>
-<footer class="mt-12 pb-8 text-center">
-    <p class="text-gray-300 text-xs">
-        System Version 2.4.1 | 
-        <a href="javascript:void(0);" onclick="resetWorkMode()" class="hover:text-gray-400">重置身分</a>
+
+<footer class="custom-footer">
+    <p>
+        System v2.4.1 | 
+        <a href="javascript:void(0);" onclick="resetWorkMode()">重置身分</a>
     </p>
-</footer>    
+</footer>
 
 <script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbzmUqDhEExlbShpr7IQWfkuCSVt3CQAbKTZAV8bx8P4qOryYPx3VAd3fm03a9434GOb/exec"; 
@@ -87,7 +127,6 @@
                 body: JSON.stringify({ id, name, action })
             });
 
-            // 稍微延遲確保封包發出，並帶上中文 action 給成功頁面
             setTimeout(() => {
                 window.location.href = `success.html?name=${encodeURIComponent(name)}&action=${encodeURIComponent(actionChinese)}`;
             }, 500);
@@ -99,16 +138,13 @@
     };
 
     function resetWorkMode() {
-    if (confirm("確定要清除目前的工作身分（報到處/廠商名稱）並重新設定嗎？")) {
-        // 清除所有相關暫存
-        localStorage.removeItem('work_mode');
-        localStorage.removeItem('work_vendor');
-        localStorage.removeItem('work_action');
-        
-        // 引導回 gate.html 且不帶參數，讓它顯示「尚未設定身分」的 UI
-        window.location.href = "gate.html";
+        if (confirm("確定要清除目前的工作身分並重新設定嗎？")) {
+            localStorage.removeItem('work_mode');
+            localStorage.removeItem('work_vendor');
+            localStorage.removeItem('work_action');
+            window.location.href = "gate.html";
+        }
     }
-}
 </script>
 </body>
 </html>
