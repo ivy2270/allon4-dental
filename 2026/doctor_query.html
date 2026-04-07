@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>醫師個人中心 | 2026 牙醫年會</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Noto+Sans+TC:wght@400;700&display=swap');
+        
+        body { 
+            font-family: 'Inter', 'Noto Sans TC', sans-serif; 
+            background-color: #f8fafc; 
+            color: #1e293b;
+        }
+
+        /* 頁籤主色與動畫 */
+        .tab-btn { transition: all 0.3s ease; border-bottom: 3px solid transparent; }
+        .tab-btn.active { 
+            color: #2563eb; 
+            border-bottom-color: #2563eb; 
+            font-weight: bold; 
+            background-color: rgba(37, 99, 235, 0.05);
+        }
+
+        /* 輸入框一致化樣式，避免 Chrome 黃色自動填充 */
+        input { 
+            background-color: white !important; 
+            -webkit-box-shadow: 0 0 0px 1000px white inset !important; 
+        }
+
+        /* RWD Table 魔法：手機版轉為卡片 */
+        @media (max-width: 640px) {
+            .rwd-table thead { display: none; }
+            .rwd-table tr { 
+                display: block; 
+                background: #fff; 
+                border: 1px solid #f1f5f9; 
+                border-radius: 12px; 
+                padding: 12px; 
+                margin-bottom: 12px;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            }
+            .rwd-table td { 
+                display: flex; 
+                justify-content: space-between; 
+                padding: 8px 0; 
+                border: none; 
+                text-align: right;
+            }
+            .rwd-table td::before { 
+                content: attr(data-label); 
+                font-weight: bold; 
+                color: #64748b; 
+                text-align: left;
+                font-size: 0.875rem;
+            }
+        }
+
+        .animate-fade-in { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="p-4 md:p-10">
+
+<div class="max-w-2xl mx-auto">
+    <div class="text-center mb-8">
+        <h1 class="text-3xl font-extrabold tracking-tight text-slate-900">醫師個人中心</h1>
+        <p class="text-slate-500 mt-2">Personal Physician Dashboard</p>
+    </div>
+
+    <div id="loginCard" class="bg-white rounded-3xl shadow-xl p-8 mb-8 border border-slate-100">
+        <div class="space-y-6">
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2 text-center sm:text-left">醫師姓名</label>
+                <input type="text" id="docName" class="w-full px-4 py-4 rounded-xl border border-slate-200 focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all text-lg" placeholder="請輸入姓名">
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2 text-center sm:text-left">驗證密碼 (身分證後四碼)</label>
+                <input type="password" id="docPwd" class="w-full px-4 py-4 rounded-xl border border-slate-200 focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all text-lg text-center tracking-widest" placeholder="••••">
+            </div>
+            <button onclick="doQuery()" id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-5 rounded-2xl shadow-lg shadow-blue-200 transition-all transform active:scale-95 text-xl">
+                登入查詢
+            </button>
+        </div>
+    </div>
+
+    <div id="resultBox" class="hidden animate-fade-in">
+        <div class="flex space-x-1 mb-6 bg-slate-200/50 p-1.5 rounded-2xl">
+            <button onclick="switchTab('status')" id="btn-status" class="tab-btn active flex-1 py-3.5 text-center rounded-xl transition-all text-sm font-semibold">我的概況</button>
+            <button onclick="switchTab('records')" id="btn-records" class="tab-btn flex-1 py-3.5 text-center rounded-xl transition-all text-sm font-semibold">消費明細</button>
+            <button onclick="switchTab('lucky')" id="btn-lucky" class="tab-btn flex-1 py-3.5 text-center rounded-xl transition-all text-sm font-semibold">抽獎票券</button>
+        </div>
+
+        <div class="bg-white rounded-3xl shadow-xl p-6 border border-slate-100 min-h-[450px]">
+            
+            <div id="pane-status" class="tab-pane space-y-6">
+                <div class="bg-gradient-to-br from-slate-800 to-slate-900 text-white p-8 rounded-3xl text-center shadow-lg relative overflow-hidden">
+                    <p class="text-slate-400 text-xs font-bold uppercase tracking-widest opacity-80">Current Balance</p>
+                    <h2 id="display-balance" class="text-5xl font-black mt-2">--</h2>
+                    <p class="text-slate-400 text-xs mt-2 font-medium">牙材券可用點數</p>
+                </div>
+                <div id="status-details" class="divide-y divide-slate-100">
+                    </div>
+            </div>
+
+            <div id="pane-records" class="tab-pane hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full rwd-table">
+                        <thead class="text-slate-400 text-xs font-bold uppercase tracking-wider border-b">
+                            <tr>
+                                <th class="text-left py-4 px-2">消費廠商</th>
+                                <th class="text-right py-4 px-2">金額</th>
+                                <th class="text-right py-4 px-2">交易時間</th>
+                            </tr>
+                        </thead>
+                        <tbody id="records-list" class="text-slate-700 divide-y divide-slate-50">
+                            </tbody>
+                    </table>
+                </div>
+                <div id="total-spent-box" class="mt-6 p-5 bg-blue-50 rounded-2xl text-right font-bold text-blue-700 text-lg border border-blue-100 hidden">
+                    </div>
+            </div>
+
+            <div id="pane-lucky" class="tab-pane hidden">
+                <div id="lucky-grid" class="space-y-4">
+                    </div>
+                <div class="mt-8 p-4 bg-orange-50 rounded-xl border border-orange-100 text-orange-700 text-sm text-center">
+                    請妥善保存序號，中獎結果將公佈於大會服務台
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    // ⚠️ 請填入您的 GAS Web App 部署網址
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbw8sRW_nkn_sss9IrUAicuLICiMAf_tFf9D9RtxdLcc4OuxmueUM_evxQWgVGAVFdBD/exec';
+
+    // 1. 初始化：自動抓取 URL 中的 id 參數
+    window.onload = () => {
+        const params = new URLSearchParams(window.location.search);
+        const urlId = params.get('id');
+        if (urlId) {
+            document.getElementById('docName').value = urlId;
+            document.getElementById('docPwd').focus();
+        }
+    };
+
+    // 2. 登入查詢主邏輯
+    async function doQuery() {
+        const name = document.getElementById('docName').value.trim();
+        const password = document.getElementById('docPwd').value.trim();
+        const btn = document.getElementById('submitBtn');
+
+        if (!name || !password) {
+            alert("請完整輸入姓名與驗證密碼");
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = `
+            <svg class="animate-spin h-5 w-5 mr-3 inline-block" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg> 查詢中...
+        `;
+
+        try {
+            const resp = await fetch(GAS_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ action: 'query', name, password })
+            });
+            const data = await resp.json();
+
+            if (data.success) {
+                renderData(data.records);
+                document.getElementById('loginCard').classList.add('hidden');
+                document.getElementById('resultBox').classList.remove('hidden');
+            } else {
+                alert(data.error || "登入驗證失敗");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("系統連線異常，請檢查網路狀態");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '登入查詢';
+        }
+    }
+
+// 3. 資料渲染邏輯 (修正版)
+    function renderData(records) {
+        const statusDiv = document.getElementById('status-details');
+        const recordsList = document.getElementById('records-list');
+        const luckyGrid = document.getElementById('lucky-grid');
+        let totalSpent = 0;
+
+        statusDiv.innerHTML = '';
+        recordsList.innerHTML = '';
+        luckyGrid.innerHTML = '';
+
+        records.forEach(rec => {
+            // --- A. 處理：我的概況、加購、報到、姓名密碼 ---
+            if (["醫師牙材券查詢", "牙材券加購記錄", "報到記錄", "姓名密碼"].includes(rec.sheet)) {
+    
+    // 專門處理上方黑色大卡片的顯示
+    if (rec.sheet === "醫師牙材券查詢") {
+        // 這裡我們只認準「剩餘金額」這四個字
+        const balIdx = rec.title.findIndex(t => t.trim() === "剩餘金額");
+        
+        if (balIdx !== -1) {
+            const rawVal = rec.row[balIdx];
+            // 清理數值：移除掉可能是字串的逗號或符號
+            const cleanVal = parseInt(rawVal.toString().replace(/[^0-9]/g, ''));
+            
+            // 如果是數字就顯示格式化後的，如果是 0 就顯示 0，否則顯示原始值
+            document.getElementById('display-balance').innerText = 
+                !isNaN(cleanVal) ? cleanVal.toLocaleString() : (rawVal || "0");
+        }
+    }
+                
+                // 區分工作表標題
+                statusDiv.innerHTML += `
+                    <div class="bg-slate-50 px-3 py-1.5 rounded-lg text-[10px] font-black text-slate-400 mt-6 mb-2 uppercase tracking-widest">
+                        ${rec.sheet}
+                    </div>`;
+                
+                rec.title.forEach((title, i) => {
+                    const val = rec.row[i];
+                    if (title.includes("密碼")) return; 
+                    if (!val && val !== 0) return; // 數值 0 要顯示，空字串不顯示
+
+                    let contentHtml = `<span class="font-semibold text-slate-800">${val}</span>`;
+
+                    if (typeof val === 'string' && val.startsWith('http')) {
+                        contentHtml = `
+                            <div class="mt-2 p-3 border border-slate-100 rounded-2xl bg-white shadow-sm inline-block">
+                                <img src="${val}" alt="QR Code" class="w-36 h-36 mx-auto">
+                            </div>`;
+                    }
+
+                    statusDiv.innerHTML += `
+                        <div class="flex flex-col sm:flex-row sm:justify-between py-4 border-b border-slate-50">
+                            <span class="text-slate-500 text-sm mb-1 sm:mb-0">${title}</span>
+                            ${contentHtml}
+                        </div>`;
+                });
+            }
+
+            // --- B. 處理：消費記錄 (修正 undefined 問題) ---
+            if (rec.sheet === "牙材券消費記錄") {
+                // 自動偵測索引位置，避免人工打錯字
+                const vIdx = rec.title.findIndex(t => t.includes("廠商"));
+                const aIdx = rec.title.findIndex(t => t.includes("金額"));
+                const tIdx = rec.title.findIndex(t => t.includes("時間"));
+                
+                // 確保索引都有抓到 (不等於 -1)
+                const vendor = vIdx !== -1 ? rec.row[vIdx] : "未知廠商";
+                const amtStr = aIdx !== -1 ? rec.row[aIdx] : "0";
+                const time = tIdx !== -1 ? rec.row[tIdx] : "-";
+                
+                const amt = parseInt(amtStr.toString().replace(/[^0-9]/g, '')) || 0;
+                totalSpent += amt;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td data-label="消費廠商" class="py-4 px-2 font-bold text-slate-800">${vendor}</td>
+                    <td data-label="金額" class="py-4 px-2 text-blue-600 font-extrabold text-right">$${amt.toLocaleString()}</td>
+                    <td data-label="交易時間" class="py-4 px-2 text-slate-400 text-xs text-right">${time}</td>
+                `;
+                recordsList.innerHTML += tr.outerHTML;
+            }
+
+            // --- C. 處理：抽獎票券 ---
+            if (["抽獎券領取記錄", "序號及QRCODE查詢"].includes(rec.sheet)) {
+                // 抓取含有「序號」或「號碼」字眼的欄位，若無則抓第二欄
+                let snIdx = rec.title.findIndex(t => t.includes("序號") || t.includes("號碼"));
+                if(snIdx === -1) snIdx = 1; 
+                
+                const sn = rec.row[snIdx] || 'N/A';
+                luckyGrid.innerHTML += `
+                    <div class="flex items-center space-x-5 p-5 rounded-2xl border-2 border-dashed border-orange-200 bg-orange-50/50">
+                        <div class="bg-orange-500 text-white p-3 rounded-2xl shadow-md shadow-orange-100">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-orange-400 font-black uppercase tracking-wider">${rec.sheet}</div>
+                            <div class="text-3xl font-mono font-black text-orange-700 tracking-tighter">${sn}</div>
+                        </div>
+                    </div>`;
+            }
+        });
+
+        // 更新總消費額
+        const totalBox = document.getElementById('total-spent-box');
+        if (totalSpent > 0) {
+            totalBox.classList.remove('hidden');
+            totalBox.innerText = `累積核銷金額：$${totalSpent.toLocaleString()}`;
+        } else {
+            totalBox.classList.add('hidden');
+        }
+    }
+
+    // 4. 頁籤切換控制
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        
+        document.getElementById('pane-' + tabId).classList.remove('hidden');
+        document.getElementById('btn-' + tabId).classList.add('active');
+        
+        // 渲染時的小動畫
+        document.getElementById('pane-' + tabId).classList.add('animate-fade-in');
+    }
+</script>
+
+</body>
+</html>
