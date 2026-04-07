@@ -2,39 +2,87 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>牙材券消費</title>
     <style>
         :root { --primary: #4a90e2; --bg: #f5f7fa; --text: #2c3e50; --error: #e74c3c; }
-        body { font-family: -apple-system, "Noto Sans TC", sans-serif; background-color: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
-        .card { background: white; width: 100%; max-width: 400px; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        
+        * { box-sizing: border-box; } /* 關鍵：防止寬度溢出 */
+
+        body { 
+            font-family: -apple-system, "Noto Sans TC", sans-serif; 
+            background-color: var(--bg); 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            padding: 20px;
+            overflow-x: hidden; /* 禁止左右滑動 */
+        }
+
+        .card { 
+            background: white; 
+            width: 100%; 
+            max-width: 380px; /* 統一寬度規範 */
+            padding: 30px; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05); 
+        }
+
         .header { text-align: center; margin-bottom: 25px; }
         h1 { font-size: 20px; color: var(--text); margin: 0; }
+        
         .form-group { margin-bottom: 18px; }
         label { display: block; font-weight: bold; margin-bottom: 8px; color: #555; font-size: 14px; }
-        input, select { width: 100%; padding: 12px; border: 1.5px solid #eee; border-radius: 12px; font-size: 16px; box-sizing: border-box; transition: 0.2s; }
-        input:read-only { background-color: #f0f0f0; color: #888; border-color: #ddd; }
+        
+        input, select { 
+            width: 100%; 
+            padding: 12px; 
+            border: 1.5px solid #eee; 
+            border-radius: 12px; 
+            font-size: 16px; 
+            transition: 0.2s; 
+            appearance: none; /* 移除行動裝置內建樣式干擾 */
+        }
+        
+        input:read-only { background-color: #f8f9fa; color: #888; border-color: #eee; }
         input:focus { outline: none; border-color: var(--primary); }
-        .btn { width: 100%; padding: 16px; font-size: 18px; font-weight: 600; border: none; border-radius: 12px; cursor: pointer; background: var(--primary); color: white; margin-top: 10px; }
-        .btn:disabled { background: #ccc; cursor: not-allowed; }
-        #msg { text-align: center; margin-top: 15px; font-weight: bold; min-height: 20px; }
+        
+        .btn { 
+            width: 100%; 
+            padding: 16px; 
+            font-size: 18px; 
+            font-weight: 600; 
+            border: none; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            background: var(--primary); 
+            color: white; 
+            margin-top: 10px; 
+            box-shadow: 0 4px 15px rgba(74, 144, 226, 0.2);
+        }
+        .btn:disabled { background: #ccc; cursor: not-allowed; box-shadow: none; }
+        
+        #msg { text-align: center; margin-top: 15px; font-weight: bold; min-height: 20px; font-size: 14px; }
         .error-msg { color: var(--error); }
-        /* 修正 2: 幫 footer 加上不起眼的樣式 (取代 Tailwind) */
-    .custom-footer {
-        margin-top: 30px;
-        padding-bottom: 20px;
-        text-align: center;
-        color: #bdc3c7; /* 很淡的灰色 */
-        font-size: 11px;
-    }
-    .custom-footer a {
-        color: #bdc3c7;
-        text-decoration: none;
-        margin-left: 5px;
-    }
-    .custom-footer a:hover {
-        text-decoration: underline;
-    }
+        
+        /* 隱藏版 Footer */
+        .custom-footer {
+            margin-top: 20px;
+            padding-bottom: 10px;
+            text-align: center;
+            color: #d1d8dd; /* 極淡灰色 */
+            font-size: 10px;
+            letter-spacing: 0.5px;
+        }
+        .custom-footer a {
+            color: #d1d8dd;
+            text-decoration: none;
+            cursor: default;
+        }
+        .custom-footer a:active { color: #bdc3c7; }
     </style>
 </head>
 <body>
@@ -73,10 +121,11 @@
         <button type="submit" id="submitBtn" class="btn">確認消費</button>
     </form>
 </div>
-    <footer class="mt-12 pb-8 text-center">
-    <p class="text-gray-300 text-xs">
-        System Version 2.4.1 | 
-        <a href="javascript:void(0);" onclick="resetWorkMode()" class="hover:text-gray-400">重置身分</a>
+
+<footer class="custom-footer">
+    <p>
+        System v2.4.1 | 
+        <a href="javascript:void(0);" onclick="resetWorkMode()">重置身分</a>
     </p>
 </footer>
 
@@ -90,10 +139,8 @@
         const urlId = params.get('id'); 
         const urlVendor = params.get('vendor') || localStorage.getItem('work_vendor');
 
-        // 1. 載入廠商選單
         await loadVendors(urlVendor);
 
-        // 2. 處理姓名
         const nameInput = document.getElementById('docName');
         if (urlId) {
             nameInput.value = urlId;
@@ -125,30 +172,24 @@
 
     async function fetchBalance(name) {
         if (!name) return;
-        
-        isReady = false; // 先重設狀態
+        isReady = false;
         updateMsg("正在核對醫師資料...", false);
-        
         try {
             const resp = await fetch(`${GAS_URL}?action=checkBalance&name=${encodeURIComponent(name)}`);
             const data = await resp.json();
-            
-            // 嚴格判定：status 必須是 success
             if (data.status === "success") {
-                hiddenBalance = data.balance; // 這裡是數字
+                hiddenBalance = data.balance;
                 isReady = true;
                 updateMsg("✅ 醫師資料核對成功", false);
                 document.getElementById('docName').style.borderColor = "#eee";
             } else {
-                // 這裡會抓到 GAS 回傳的 "查無此醫師"
                 hiddenBalance = 0;
                 isReady = false;
-                updateMsg("❌ 找不到此醫師資料，請檢查姓名是否有誤", true);
+                updateMsg("❌ 找不到此醫師資料", true);
                 document.getElementById('docName').style.borderColor = "red";
-                // 也可以清空輸入框或提醒使用者
             }
         } catch (e) {
-            updateMsg("⚠️ 網路連線異常，請重新輸入姓名", true);
+            updateMsg("⚠️ 網路連線異常", true);
             isReady = false;
         }
     }
@@ -167,7 +208,6 @@
 
         const btn = document.getElementById('submitBtn');
         const amount = parseInt(document.getElementById('amount').value);
-        
         if (amount > hiddenBalance) { updateMsg("❌ 餘額不足", true); return; }
 
         btn.disabled = true;
@@ -184,7 +224,6 @@
                 btn.disabled = false;
             }
         } catch (err) {
-            // Fallback for CORS
             fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
             setTimeout(() => {
                 window.location.href = `vendor-success.html?name=${encodeURIComponent(payload.name)}&amount=${amount}&vendor=${encodeURIComponent(payload.vendor)}`;
@@ -197,17 +236,15 @@
         m.textContent = text;
         m.className = isError ? "error-msg" : "";
     }
+
     function resetWorkMode() {
-    if (confirm("確定要清除目前的工作身分（報到處/廠商名稱）並重新設定嗎？")) {
-        // 清除所有相關暫存
-        localStorage.removeItem('work_mode');
-        localStorage.removeItem('work_vendor');
-        localStorage.removeItem('work_action');
-        
-        // 引導回 gate.html 且不帶參數，讓它顯示「尚未設定身分」的 UI
-        window.location.href = "gate.html";
+        if (confirm("確定要清除目前的工作身分並重新設定嗎？")) {
+            localStorage.removeItem('work_mode');
+            localStorage.removeItem('work_vendor');
+            localStorage.removeItem('work_action');
+            window.location.href = "gate.html";
+        }
     }
-}
 </script>
 </body>
 </html>
