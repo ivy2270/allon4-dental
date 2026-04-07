@@ -46,17 +46,17 @@
     const CONFIG = {
         checkinPage: "https://app.allon4-dental.tw/2026/confirmation.html", 
         spendPage: "https://app.allon4-dental.tw/2026/form.html",
-        queryPage: "https://app.allon4-dental.tw/2026/doctor_query.html" // 新增查詢頁路徑
+        queryPage: "https://app.allon4-dental.tw/2026/doctor_query.html"
     };
 
     const params = new URLSearchParams(window.location.search);
-    const id = params.get('id'); // 醫師姓名
-    const name = params.get('name'); // 醫師編號
+    const id = params.get('id'); 
+    const name = params.get('name'); 
     const setRole = params.get('role');
     const setVendor = params.get('vendor');
     const setAction = params.get('action');
 
-    // 1. 處理身分切換 (報到處或廠商登入工作位置)
+    // 1. 處理身分切換
     if (setRole === 'checkin' || setVendor) {
         if (setRole === 'checkin') {
             const action = setAction || 'checkin';
@@ -71,7 +71,7 @@
             showConfigSuccess(`廠商：${setVendor}`);
         }
     } 
-    // 2. 自動導向邏輯 (當掃描到醫師 QR Code 時)
+    // 2. 自動導向邏輯
     else if (id) {
         const currentMode = localStorage.getItem('work_mode');
         const currentVendor = localStorage.getItem('work_vendor');
@@ -79,18 +79,16 @@
         const commonParams = `?id=${encodeURIComponent(id)}&name=${encodeURIComponent(name || "")}`;
 
         if (currentMode === 'checkin') {
-            // 導向報到頁
             window.location.href = CONFIG.checkinPage + commonParams + `&action=${currentAction}`;
         } else if (currentMode === 'vendor') {
-            // 導向消費頁
             window.location.href = CONFIG.spendPage + commonParams + `&vendor=${encodeURIComponent(currentVendor)}`;
         } else {
-            // 雖然沒設定模式，但有 id，代表醫師可能想看自己的資料
+            // 醫師手機自掃，保留按鈕
             updateStatus("您好，" + id + " 醫師", "偵測到您的身分，請選擇操作：");
             showDoctorOptions(id);
         }
     } 
-    // 3. 預設狀態 (等待掃描)
+    // 3. 預設狀態（工作人員的就緒畫面）
     else {
         const currentMode = localStorage.getItem('work_mode');
         if (currentMode) {
@@ -98,13 +96,13 @@
                 (localStorage.getItem('work_action') === 'checkout' ? "報到處 (簽退)" : "報到處 (簽到)") : 
                 localStorage.getItem('work_vendor');
             
+            // 此處移除醫師中心按鈕，避免廠商混亂
             let actionHtml = `
                 <div class="btn-group">
-                    <a href="${CONFIG.queryPage}" class="btn btn-doctor">醫師個人中心 (查詢)</a>
                     <button onclick="clearRole()" class="btn btn-outline">清除並重新設定工作身分</button>
                 </div>
             `;
-            updateStatus("系統就緒", `目前身分：<span class="highlight">${modeName}</span><br>請直接掃描醫師 QR Code<br>${actionHtml}`);
+            updateStatus("系統就緒", `目前鎖定身分：<br><span class="highlight" style="font-size:20px;">${modeName}</span><br><br>請直接掃描醫師 QR Code<br>${actionHtml}`);
         } else {
             showError();
         }
@@ -117,14 +115,13 @@
 
     function showDoctorOptions(doctorId) {
         const ui = document.getElementById('loading-ui');
-        // 隱藏 Loader
         ui.querySelector('.loader').style.display = 'none';
         
         const btnGroup = document.createElement('div');
         btnGroup.className = 'btn-group';
         btnGroup.innerHTML = `
             <a href="${CONFIG.queryPage}?id=${encodeURIComponent(doctorId)}" class="btn btn-doctor text-lg">進入個人查詢中心</a>
-            <p style="font-size:13px; color:#999; margin-top:10px;">提醒：若要執行報到或消費，請先讓工作人員掃描</p>
+            <p style="font-size:13px; color:#999; margin-top:10px;">提醒：如需報到或核銷點數，請向工作人員出示您的 QR Code</p>
         `;
         ui.appendChild(btnGroup);
     }
