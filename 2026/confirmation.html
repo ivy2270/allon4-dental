@@ -6,7 +6,16 @@
     <title>確認資訊 - 醫師服務系統</title>
     <style>
         :root { --primary: #4a90e2; --bg: #f5f7fa; --text: #2c3e50; }
-        body { font-family: -apple-system, "Noto Sans TC", sans-serif; background-color: var(--bg); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        body { 
+        font-family: -apple-system, "Noto Sans TC", sans-serif; 
+        background-color: var(--bg); 
+        display: flex; 
+        flex-direction: column; /* 強制垂直排列 */
+        align-items: center; 
+        justify-content: center; 
+        min-height: 100vh; 
+        margin: 0; 
+    }
         .card { background: white; width: 90%; max-width: 400px; padding: 40px 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: center; }
         .icon { font-size: 48px; margin-bottom: 20px; display: inline-block; }
         h1 { font-size: 24px; color: var(--text); margin: 0 0 15px; }
@@ -16,6 +25,22 @@
         .btn { width: 100%; padding: 16px; font-size: 18px; font-weight: 600; border: none; border-radius: 12px; cursor: pointer; transition: all 0.2s; background: var(--primary); color: white; box-shadow: 0 4px 15px rgba(74, 144, 226, 0.3); }
         .btn:active { transform: scale(0.98); }
         .btn:disabled { background: #ccc; box-shadow: none; cursor: not-allowed; }
+        /* 修正 2: 幫 footer 加上不起眼的樣式 (取代 Tailwind) */
+    .custom-footer {
+        margin-top: 30px;
+        padding-bottom: 20px;
+        text-align: center;
+        color: #bdc3c7; /* 很淡的灰色 */
+        font-size: 11px;
+    }
+    .custom-footer a {
+        color: #bdc3c7;
+        text-decoration: none;
+        margin-left: 5px;
+    }
+    .custom-footer a:hover {
+        text-decoration: underline;
+    }
     </style>
 </head>
 <body>
@@ -33,7 +58,7 @@
 <footer class="mt-12 pb-8 text-center">
     <p class="text-gray-300 text-xs">
         System Version 2.4.1 | 
-        <a href="javascript:void(0);" onclick="resetWorkMode()" class="hover:text-gray-400">重置裝置身分</a>
+        <a href="javascript:void(0);" onclick="resetWorkMode()" class="hover:text-gray-400">重置身分</a>
     </p>
 </footer>    
 
