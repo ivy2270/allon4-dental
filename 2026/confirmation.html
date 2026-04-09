@@ -115,27 +115,32 @@
     document.getElementById('action-txt').textContent = actionChinese;
 
     document.getElementById('submit-btn').onclick = async function() {
-        if (!id || !name) return alert("資料不完整");
-        
-        this.disabled = true;
-        this.textContent = "處理中...";
+    if (!id || !name) return alert("資料不完整");
+    
+    this.disabled = true;
+    this.textContent = "處理中...";
 
-        try {
-            await fetch(GAS_URL, {
-                method: "POST",
-                mode: "no-cors",
-                body: JSON.stringify({ id, name, action })
-            });
+    try {
+        // 修改這裡：不要用 no-cors，改用 text/plain 傳送 JSON 字串
+        await fetch(GAS_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "text/plain;charset=utf-8"
+            },
+            body: JSON.stringify({ id, name, action })
+        });
 
-            setTimeout(() => {
-                window.location.href = `success.html?name=${encodeURIComponent(name)}&action=${encodeURIComponent(actionChinese)}`;
-            }, 500);
-        } catch (err) {
-            alert("連線失敗，請重試");
-            this.disabled = false;
-            this.textContent = "確認提交";
-        }
-    };
+        // 因為 GAS 跨域不會回傳內容，我們直接假設成功並跳轉
+        setTimeout(() => {
+            window.location.href = `success.html?name=${encodeURIComponent(name)}&action=${encodeURIComponent(actionChinese)}`;
+        }, 800);
+    } catch (err) {
+        console.error(err);
+        alert("連線失敗，請檢查網路或重新整理");
+        this.disabled = false;
+        this.textContent = "確認提交";
+    }
+};
 
     function resetWorkMode() {
         if (confirm("確定要清除目前的工作身分並重新設定嗎？")) {
