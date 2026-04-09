@@ -4,149 +4,85 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>確認資訊 - 醫師服務系統</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         :root { --primary: #4a90e2; --bg: #f5f7fa; --text: #2c3e50; }
-        
-        * { box-sizing: border-box; } /* 確保 padding 不會撐大寬度 */
-
-        body { 
-            font-family: -apple-system, "Noto Sans TC", sans-serif; 
-            background-color: var(--bg); 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            min-height: 100vh; 
-            margin: 0; 
-            overflow-x: hidden; /* 徹底禁止左右滑動 */
-        }
-
-        .card { 
-            background: white; 
-            width: 90%; 
-            max-width: 380px; /* 稍微縮小一點點點，確保 RWD 安全距離 */
-            padding: 30px 20px; 
-            border-radius: 20px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.05); 
-            text-align: center; 
-            margin: 20px 0; /* 增加上下間距 */
-        }
-
-        .icon { font-size: 48px; margin-bottom: 20px; display: inline-block; }
-        h1 { font-size: 22px; color: var(--text); margin: 0 0 15px; }
-        
-        .info-box { 
-            background: #f8f9fa; 
-            padding: 15px; 
-            border-radius: 12px; 
-            margin-bottom: 25px; 
-            text-align: left; 
-            border-left: 4px solid var(--primary); 
-        }
-        
-        .info-row { margin: 10px 0; font-size: 15px; color: #555; }
-        .info-label { font-weight: bold; color: var(--text); margin-right: 8px; }
-        
-        .btn { 
-            width: 100%; 
-            padding: 16px; 
-            font-size: 18px; 
-            font-weight: 600; 
-            border: none; 
-            border-radius: 12px; 
-            cursor: pointer; 
-            transition: all 0.2s; 
-            background: var(--primary); 
-            color: white; 
-            box-shadow: 0 4px 15px rgba(74, 144, 226, 0.3); 
-        }
-        .btn:active { transform: scale(0.98); }
-        .btn:disabled { background: #ccc; box-shadow: none; cursor: not-allowed; }
-
-        /* 終極隱藏版 Footer */
-        .custom-footer {
-            margin-top: 10px;
-            padding-bottom: 20px;
-            text-align: center;
-            color: #d1d8dd; /* 與背景色極度接近 */
-            font-size: 10px;
-            letter-spacing: 0.5px;
-        }
-        .custom-footer a {
-            color: #d1d8dd; /* 讓超連結看起來像普通文字 */
-            text-decoration: none; /* 移除底線 */
-            cursor: default; /* 連游標都不要變，增加隱蔽性 */
-        }
-        .custom-footer a:active, .custom-footer a:hover {
-            color: #bdc3c7; /* 只有點擊或碰觸時稍微變深 */
-        }
+        body { font-family: -apple-system, "Noto Sans TC", sans-serif; background-color: var(--bg); }
+        .card { background: white; width: 92%; max-width: 380px; padding: 30px 20px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: center; }
+        .info-box { background: #f8f9fa; padding: 16px; border-radius: 16px; margin-bottom: 24px; text-align: left; border-left: 4px solid var(--primary); }
     </style>
 </head>
-<body>
+<body class="flex flex-col items-center justify-center min-h-screen m-0">
 
 <div class="card">
-    <div class="icon">📝</div>
-    <h1>確認資訊</h1>
+    <div class="text-5xl mb-4">📝</div>
+    <h1 class="text-xl font-bold text-slate-800 mb-4">確認報到資訊</h1>
     <div class="info-box">
-        <div class="info-row"><span class="info-label">姓名：</span><span id="name-txt">讀取中...</span></div>
-        <div class="info-row"><span class="info-label">編號：</span><span id="id-txt">---</span></div>
-        <div class="info-row"><span class="info-label">動作：</span><span id="action-txt" style="color: #e67e22; font-weight: bold;">---</span></div>
+        <div class="mb-2"><span class="font-bold text-slate-700">姓名：</span><span id="name-txt" class="text-blue-600 font-medium">讀取中...</span></div>
+        <div class="mb-2"><span class="font-bold text-slate-700">編號：</span><span id="id-txt" class="text-slate-500">---</span></div>
+        <div><span class="font-bold text-slate-700">動作：</span><span id="action-txt" class="text-orange-500 font-bold">---</span></div>
     </div>
-    <button id="submit-btn" class="btn">確認提交</button>
+    <button id="submit-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-bold shadow-lg transition-all active:scale-95">確認提交</button>
 </div>
 
-<footer class="custom-footer">
-    <p>
-        System v2.4.1 | 
-        <a href="javascript:void(0);" onclick="resetWorkMode()">重置身分</a>
-    </p>
+<footer class="mt-6 text-[10px] text-slate-300">
+    System v2.4.2 | <a href="javascript:void(0);" onclick="resetWorkMode()" class="hover:text-slate-400">重置身分</a>
 </footer>
 
 <script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbzmUqDhEExlbShpr7IQWfkuCSVt3CQAbKTZAV8bx8P4qOryYPx3VAd3fm03a9434GOb/exec"; 
     const params = new URLSearchParams(window.location.search);
-    const id = params.get('id');
-    const name = params.get('name');
+    
+    // 【顯示修正】自動偵測並修正網址參數放反的問題
+    let rawId = params.get('id');
+    let rawName = params.get('name');
+    let displayId, displayName;
+
+    if (rawId && rawId.match(/[^\x00-\xff]/) && (!rawName || !rawName.match(/[^\x00-\xff]/))) {
+        // 如果 id 是中文且 name 不是中文 -> 說明放反了
+        displayName = rawId;
+        displayId = rawName;
+    } else {
+        displayName = rawName;
+        displayId = rawId;
+    }
+
     const action = params.get('action') || 'checkin';
     const actionChinese = (action === 'checkout') ? '簽退' : '簽到';
 
-    document.getElementById('name-txt').textContent = name || '未知';
-    document.getElementById('id-txt').textContent = id || '---';
+    document.getElementById('name-txt').textContent = displayName || '未知';
+    document.getElementById('id-txt').textContent = displayId || '---';
     document.getElementById('action-txt').textContent = actionChinese;
 
     document.getElementById('submit-btn').onclick = async function() {
-    if (!id || !name) return alert("資料不完整");
-    
-    this.disabled = true;
-    this.textContent = "處理中...";
+        if (!displayId || !displayName) return alert("資料不完整");
+        
+        this.disabled = true;
+        this.textContent = "處理中...";
 
-    try {
-        // 修改這裡：不要用 no-cors，改用 text/plain 傳送 JSON 字串
-        await fetch(GAS_URL, {
-            method: "POST",
-            headers: {
-                "Content-Type": "text/plain;charset=utf-8"
-            },
-            body: JSON.stringify({ id, name, action })
-        });
+        try {
+            // 使用 text/plain 避免 CORS 問題，內容傳送修正後的資料
+            await fetch(GAS_URL, {
+                method: "POST",
+                mode: "no-cors", 
+                headers: { "Content-Type": "text/plain" },
+                body: JSON.stringify({ id: displayId, name: displayName, action: action })
+            });
 
-        // 因為 GAS 跨域不會回傳內容，我們直接假設成功並跳轉
-        setTimeout(() => {
-            window.location.href = `success.html?name=${encodeURIComponent(name)}&action=${encodeURIComponent(actionChinese)}`;
-        }, 800);
-    } catch (err) {
-        console.error(err);
-        alert("連線失敗，請檢查網路或重新整理");
-        this.disabled = false;
-        this.textContent = "確認提交";
-    }
-};
+            // 因為 no-cors 無法獲取回傳，我們延遲跳轉
+            setTimeout(() => {
+                window.location.href = `success.html?name=${encodeURIComponent(displayName)}&action=${encodeURIComponent(actionChinese)}`;
+            }, 800);
+        } catch (err) {
+            alert("連線失敗，請重試");
+            this.disabled = false;
+            this.textContent = "確認提交";
+        }
+    };
 
     function resetWorkMode() {
-        if (confirm("確定要清除目前的工作身分並重新設定嗎？")) {
-            localStorage.removeItem('work_mode');
-            localStorage.removeItem('work_vendor');
-            localStorage.removeItem('work_action');
+        if (confirm("確定重置身分？")) {
+            localStorage.clear();
             window.location.href = "gate.html";
         }
     }
