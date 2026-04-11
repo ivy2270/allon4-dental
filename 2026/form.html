@@ -18,20 +18,8 @@
         input:read-only { background-color: #f8f9fa; color: #888; border-color: #eee; }
         input:focus { outline: none; border-color: var(--primary); }
         
-        /* 密碼切換容器 */
         .password-wrapper { position: relative; width: 100%; }
-        .toggle-btn { 
-            position: absolute; 
-            right: 15px; 
-            top: 50%; 
-            transform: translateY(-50%); 
-            cursor: pointer; 
-            color: #999; 
-            font-size: 16px; 
-            user-select: none;
-            z-index: 10;
-        }
-        .toggle-btn:hover { color: var(--primary); }
+        .toggle-btn { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #999; font-size: 16px; user-select: none; z-index: 10; }
 
         .btn { width: 100%; padding: 16px; font-size: 18px; font-weight: 600; border: none; border-radius: 12px; cursor: pointer; background: var(--primary); color: white; margin-top: 10px; box-shadow: 0 4px 15px rgba(74, 144, 226, 0.2); }
         .btn:disabled { background: #ccc; cursor: not-allowed; box-shadow: none; }
@@ -40,8 +28,6 @@
         .error-msg { color: var(--error); }
         
         .candidate-item { padding: 12px; border: 1px solid #ffeeba; background: #fff; margin-top: 8px; border-radius: 10px; cursor: pointer; font-weight: bold; color: #856404; display: flex; justify-content: space-between; font-size: 14px; }
-        .candidate-item:active { background: #fff3cd; }
-        
         .custom-footer { margin-top: 20px; padding-bottom: 10px; text-align: center; color: #d1d8dd; font-size: 10px; }
     </style>
 </head>
@@ -85,7 +71,8 @@
             <div class="password-wrapper">
                 <input type="password" name="password" id="password" placeholder="請輸入四位數字" required maxlength="4">
                 <span class="toggle-btn" id="togglePassword">
-                    <i class="fa-regular fa-eye-slash"></i> </span>
+                    <i class="fa-regular fa-eye-slash"></i>
+                </span>
             </div>
         </div>
 
@@ -100,27 +87,21 @@
 </div>
 
 <footer class="custom-footer">
-    <p>System v2.5.5 | <a href="javascript:void(0);" onclick="resetWorkMode()" style="color:#d1d8dd; text-decoration:none;">重置身分</a></p>
+    <p>System v2.6.0 | <a href="javascript:void(0);" onclick="resetWorkMode()" style="color:#d1d8dd; text-decoration:none;">重置身分</a></p>
 </footer>
 
 <script>
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbyoaZ3j0WjToUSMOsFHJtgK9fLxu-03APP0vn4ZIybWNHMb3Z0tVPGnklsMEQ7Xots/exec'; 
-    let hiddenBalance = 0;
+    let hiddenBalance = 0; // 雖然存儲在 JS 變數，但不在 HTML 中渲染顯示
     let isReady = false;
 
-    // --- 密碼切換邏輯 (Font Awesome 版) ---
+    // 密碼切換
     const togglePassword = document.querySelector('#togglePassword');
     const passwordInput = document.querySelector('#password');
-
     togglePassword.addEventListener('click', function () {
-        // 切換輸入框類型
         const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
         passwordInput.setAttribute('type', type);
-        
-        // 切換圖示：如果是 text (看得到) 則顯示普通眼睛 fa-eye；如果是 password (看不到) 則顯示劃掉的眼睛 fa-eye-slash
-        this.innerHTML = type === 'password' 
-            ? '<i class="fa-regular fa-eye-slash"></i>' 
-            : '<i class="fa-regular fa-eye"></i>';
+        this.innerHTML = type === 'password' ? '<i class="fa-regular fa-eye-slash"></i>' : '<i class="fa-regular fa-eye"></i>';
     });
 
     window.onload = async function() {
@@ -128,9 +109,7 @@
         const urlId = params.get('id'); 
         const urlName = params.get('name');
         const urlVendor = params.get('vendor') || localStorage.getItem('work_vendor');
-
         await loadVendors(urlVendor);
-
         if (urlId && urlName) {
             applyDoctor({ name: urlName, id: urlId });
             document.getElementById('lookupBtn').style.display = 'none';
@@ -166,9 +145,7 @@
             if (data.status === "success" && data.message.length > 0) {
                 if (data.message.length === 1) {
                     applyDoctor(data.message[0]);
-                } else {
-                    showCandidates(data.message);
-                }
+                } else { showCandidates(data.message); }
             } else { updateMsg("❌ 找不到醫師資料", true); }
         } catch (e) { updateMsg("⚠️ 連線異常", true); }
     }
@@ -197,15 +174,15 @@
         document.getElementById('id-display-group').style.display = 'block';
         document.getElementById('candidate-box').style.display = 'none';
         
-        updateMsg("⌛ 同步餘額中...", false);
+        updateMsg("⌛ 資料核對中...", false);
         try {
             const resp = await fetch(`${GAS_URL}?action=checkBalance&id=${encodeURIComponent(doc.id)}`);
             const data = await resp.json();
             if (data.status === "success") {
-                hiddenBalance = data.balance;
+                hiddenBalance = data.balance; // 靜默鎖定餘額
                 isReady = true;
-                updateMsg(`✅ 資料鎖定成功 (餘額: ${hiddenBalance})`, false);
-            } else { updateMsg("❌ 無法取得餘額", true); }
+                updateMsg(`✅ 醫師資料鎖定成功`, false); // 不再秀出餘額數字
+            } else { updateMsg("❌ 無法取得驗證資訊", true); }
         } catch (e) { updateMsg("⚠️ 網路錯誤", true); }
     }
 
@@ -215,10 +192,15 @@
         
         const btn = document.getElementById('submitBtn');
         const amount = parseInt(document.getElementById('amount').value);
-        if (amount > hiddenBalance) return updateMsg("❌ 餘額不足", true);
+        
+        // 餘額檢查 (背景執行)
+        if (amount > hiddenBalance) {
+            updateMsg("❌ 剩餘額度不足", true);
+            return;
+        }
 
         btn.disabled = true;
-        updateMsg("🚀 扣款處理中...", false);
+        updateMsg("🚀 處理中...", false);
         const payload = Object.fromEntries(new FormData(this).entries());
 
         try {
@@ -231,7 +213,7 @@
                 btn.disabled = false;
             }
         } catch (err) {
-            updateMsg("⚠️ 系統連線異常", true);
+            updateMsg("⚠️ 連線異常，請重試", true);
             btn.disabled = false;
         }
     };
