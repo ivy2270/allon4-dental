@@ -6,83 +6,31 @@
     <title>牙材券消費</title>
     <style>
         :root { --primary: #4a90e2; --bg: #f5f7fa; --text: #2c3e50; --error: #e74c3c; }
-        
-        * { box-sizing: border-box; } /* 關鍵：防止寬度溢出 */
-
-        body { 
-            font-family: -apple-system, "Noto Sans TC", sans-serif; 
-            background-color: var(--bg); 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            min-height: 100vh; 
-            margin: 0; 
-            padding: 20px;
-            overflow-x: hidden; /* 禁止左右滑動 */
-        }
-
-        .card { 
-            background: white; 
-            width: 100%; 
-            max-width: 380px; /* 統一寬度規範 */
-            padding: 30px; 
-            border-radius: 20px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.05); 
-        }
-
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, "Noto Sans TC", sans-serif; background-color: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; overflow-x: hidden; }
+        .card { background: white; width: 100%; max-width: 380px; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
         .header { text-align: center; margin-bottom: 25px; }
         h1 { font-size: 20px; color: var(--text); margin: 0; }
-        
         .form-group { margin-bottom: 18px; }
         label { display: block; font-weight: bold; margin-bottom: 8px; color: #555; font-size: 14px; }
-        
-        input, select { 
-            width: 100%; 
-            padding: 12px; 
-            border: 1.5px solid #eee; 
-            border-radius: 12px; 
-            font-size: 16px; 
-            transition: 0.2s; 
-            appearance: none; /* 移除行動裝置內建樣式干擾 */
-        }
-        
+        input, select { width: 100%; padding: 12px; border: 1.5px solid #eee; border-radius: 12px; font-size: 16px; transition: 0.2s; appearance: none; }
         input:read-only { background-color: #f8f9fa; color: #888; border-color: #eee; }
         input:focus { outline: none; border-color: var(--primary); }
         
-        .btn { 
-            width: 100%; 
-            padding: 16px; 
-            font-size: 18px; 
-            font-weight: 600; 
-            border: none; 
-            border-radius: 12px; 
-            cursor: pointer; 
-            background: var(--primary); 
-            color: white; 
-            margin-top: 10px; 
-            box-shadow: 0 4px 15px rgba(74, 144, 226, 0.2);
-        }
+        /* 密碼切換容器 */
+        .password-wrapper { position: relative; width: 100%; }
+        .toggle-btn { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 18px; user-select: none; }
+
+        .btn { width: 100%; padding: 16px; font-size: 18px; font-weight: 600; border: none; border-radius: 12px; cursor: pointer; background: var(--primary); color: white; margin-top: 10px; box-shadow: 0 4px 15px rgba(74, 144, 226, 0.2); }
         .btn:disabled { background: #ccc; cursor: not-allowed; box-shadow: none; }
         
-        #msg { text-align: center; margin-top: 15px; font-weight: bold; min-height: 20px; font-size: 14px; }
+        #msg { text-align: center; margin-top: 15px; font-weight: bold; min-height: 20px; font-size: 14px; transition: 0.3s; }
         .error-msg { color: var(--error); }
         
-        /* 隱藏版 Footer */
-        .custom-footer {
-            margin-top: 20px;
-            padding-bottom: 10px;
-            text-align: center;
-            color: #d1d8dd; /* 極淡灰色 */
-            font-size: 10px;
-            letter-spacing: 0.5px;
-        }
-        .custom-footer a {
-            color: #d1d8dd;
-            text-decoration: none;
-            cursor: default;
-        }
-        .custom-footer a:active { color: #bdc3c7; }
+        .candidate-item { padding: 12px; border: 1px solid #ffeeba; background: #fff; margin-top: 8px; border-radius: 10px; cursor: pointer; font-weight: bold; color: #856404; display: flex; justify-content: space-between; }
+        .candidate-item:active { background: #fff3cd; }
+        
+        .custom-footer { margin-top: 20px; padding-bottom: 10px; text-align: center; color: #d1d8dd; font-size: 10px; }
     </style>
 </head>
 <body>
@@ -92,7 +40,20 @@
     <form id="consumeForm">
         <div class="form-group">
             <label>醫師姓名</label>
-            <input type="text" name="name" id="docName" placeholder="請輸入醫師姓名" required>
+            <div style="display: flex; gap: 8px;">
+                <input type="text" name="name" id="docName" placeholder="請輸入醫師姓名" required>
+                <button type="button" id="lookupBtn" class="btn" style="width:auto; margin:0; padding:0 15px; font-size:14px; white-space:nowrap;">搜尋</button>
+            </div>
+            <div id="candidate-box" style="display:none; margin-top:10px; background:#fff3cd; padding:12px; border-radius:12px; border:1px solid #ffeeba;">
+                <p style="font-size:12px; margin:0 0 5px 0; font-weight:bold;">找到多位醫師，請選擇序號：</p>
+                <div id="candidate-list"></div>
+            </div>
+        </div>
+
+        <div class="form-group" id="id-display-group" style="display:none;">
+            <label>報名序號</label>
+            <input type="text" id="displayId" readonly style="color:var(--primary); font-weight:bold;">
+            <input type="hidden" name="id" id="docId">
         </div>
 
         <div class="form-group">
@@ -109,7 +70,10 @@
 
         <div class="form-group">
             <label>身份證後四碼 (核對身分)</label>
-            <input type="password" name="password" id="password" placeholder="請詢問醫師身份證後四碼" required maxlength="4">
+            <div class="password-wrapper">
+                <input type="password" name="password" id="password" placeholder="請輸入四位數字" required maxlength="4">
+                <span class="toggle-btn" id="eyeIcon">👁️</span>
+            </div>
         </div>
 
         <div class="form-group">
@@ -118,38 +82,44 @@
         </div>
 
         <div id="msg"></div>
-        <button type="submit" id="submitBtn" class="btn">確認消費</button>
+        <button type="submit" id="submitBtn" class="btn">確認扣款</button>
     </form>
 </div>
 
 <footer class="custom-footer">
-    <p>
-        System v2.4.1 | 
-        <a href="javascript:void(0);" onclick="resetWorkMode()">重置身分</a>
-    </p>
+    <p>System v2.5.2 | <a href="javascript:void(0);" onclick="resetWorkMode()" style="color:#d1d8dd; text-decoration:none;">重置身分</a></p>
 </footer>
 
 <script>
-    const GAS_URL = 'https://script.google.com/macros/s/AKfycby6FiikxJFNCyjOwXGY4PxqSpd6W_UIfpUPa0y6w_0dN3-q3wiX-lkViG0jvQE8aWlz/exec'; 
+    const GAS_URL = '您的_GAS_部署網址'; 
     let hiddenBalance = 0;
     let isReady = false;
+
+    // 密碼切換顯示
+    document.getElementById('eyeIcon').onclick = function() {
+        const p = document.getElementById('password');
+        if (p.type === 'password') {
+            p.type = 'text';
+            this.textContent = '🔒';
+        } else {
+            p.type = 'password';
+            this.textContent = '👁️';
+        }
+    };
 
     window.onload = async function() {
         const params = new URLSearchParams(window.location.search);
         const urlId = params.get('id'); 
+        const urlName = params.get('name');
         const urlVendor = params.get('vendor') || localStorage.getItem('work_vendor');
 
         await loadVendors(urlVendor);
 
-        const nameInput = document.getElementById('docName');
-        if (urlId) {
-            nameInput.value = urlId;
-            nameInput.readOnly = true;
-            fetchBalance(urlId);
+        if (urlId && urlName) {
+            applyDoctor({ name: urlName, id: urlId });
+            document.getElementById('lookupBtn').style.display = 'none';
         } else {
-            nameInput.addEventListener('blur', function() {
-                if (this.value.trim()) fetchBalance(this.value.trim());
-            });
+            document.getElementById('lookupBtn').onclick = performLookup;
         }
     };
 
@@ -158,7 +128,7 @@
         try {
             const resp = await fetch(`${GAS_URL}?action=getVendors`);
             const data = await resp.json();
-            if (data.status === "success" && data.message) {
+            if (data.status === "success") {
                 const list = data.message.split(',').map(v => v.trim());
                 let html = '<option value="">-- 請選擇廠商 --</option>';
                 list.forEach(v => {
@@ -170,48 +140,69 @@
         } catch (e) { select.innerHTML = '<option value="">載入失敗</option>'; }
     }
 
-    async function fetchBalance(name) {
+    async function performLookup() {
+        const name = document.getElementById('docName').value.trim();
         if (!name) return;
-        isReady = false;
-        updateMsg("正在核對醫師資料...", false);
+        updateMsg("🔍 搜尋醫師中...", false);
         try {
-            const resp = await fetch(`${GAS_URL}?action=checkBalance&name=${encodeURIComponent(name)}`);
+            const resp = await fetch(`${GAS_URL}?action=lookup&name=${encodeURIComponent(name)}`);
+            const data = await resp.json();
+            if (data.status === "success" && data.message.length > 0) {
+                if (data.message.length === 1) {
+                    applyDoctor(data.message[0]);
+                } else {
+                    showCandidates(data.message);
+                }
+            } else { updateMsg("❌ 找不到此醫師資料", true); }
+        } catch (e) { updateMsg("⚠️ 連線異常", true); }
+    }
+
+    function showCandidates(docs) {
+        const box = document.getElementById('candidate-box');
+        const list = document.getElementById('candidate-list');
+        list.innerHTML = '';
+        box.style.display = 'block';
+        docs.forEach(doc => {
+            const item = document.createElement('div');
+            item.className = 'candidate-item';
+            item.innerHTML = `<span>醫師: ${doc.name}</span> <span>ID: ${doc.id}</span>`;
+            item.onclick = () => applyDoctor(doc);
+            list.appendChild(item);
+        });
+        updateMsg("請點選正確的序號", false);
+    }
+
+    async function applyDoctor(doc) {
+        isReady = false;
+        document.getElementById('docName').value = doc.name;
+        document.getElementById('docName').readOnly = true;
+        document.getElementById('docId').value = doc.id;
+        document.getElementById('displayId').value = doc.id;
+        document.getElementById('id-display-group').style.display = 'block';
+        document.getElementById('candidate-box').style.display = 'none';
+        
+        updateMsg("⌛ 正在取得可用餘額...", false);
+        try {
+            const resp = await fetch(`${GAS_URL}?action=checkBalance&id=${encodeURIComponent(doc.id)}`);
             const data = await resp.json();
             if (data.status === "success") {
                 hiddenBalance = data.balance;
                 isReady = true;
-                updateMsg("✅ 醫師資料核對成功", false);
-                document.getElementById('docName').style.borderColor = "#eee";
-            } else {
-                hiddenBalance = 0;
-                isReady = false;
-                updateMsg("❌ 找不到此醫師資料", true);
-                document.getElementById('docName').style.borderColor = "red";
-            }
-        } catch (e) {
-            updateMsg("⚠️ 網路連線異常", true);
-            isReady = false;
-        }
+                updateMsg(`✅ 資料鎖定成功 (剩餘: ${hiddenBalance})`, false);
+            } else { updateMsg("❌ 無法讀取餘額", true); }
+        } catch (e) { updateMsg("⚠️ 網路連線錯誤", true); }
     }
-
-    document.getElementById('amount').addEventListener('blur', function() {
-        const val = parseInt(this.value);
-        if (!val) return;
-        if (val % 1000 !== 0) updateMsg("❌ 金額必須是 1000 的倍數", true);
-        else if (isReady && val > hiddenBalance) updateMsg(`❌ 餘額不足`, true);
-        else updateMsg("金額檢查 OK", false);
-    });
 
     document.getElementById('consumeForm').onsubmit = async function(e) {
         e.preventDefault();
-        if (!isReady) { updateMsg("❌ 請先確保醫師姓名正確", true); return; }
-
+        if (!isReady) return updateMsg("❌ 請先搜尋並選定醫師", true);
+        
         const btn = document.getElementById('submitBtn');
         const amount = parseInt(document.getElementById('amount').value);
-        if (amount > hiddenBalance) { updateMsg("❌ 餘額不足", true); return; }
+        if (amount > hiddenBalance) return updateMsg("❌ 餘額不足", true);
 
         btn.disabled = true;
-        updateMsg("正在處理...", false);
+        updateMsg("🚀 扣款處理中...", false);
         const payload = Object.fromEntries(new FormData(this).entries());
 
         try {
@@ -224,10 +215,8 @@
                 btn.disabled = false;
             }
         } catch (err) {
-            fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-            setTimeout(() => {
-                window.location.href = `vendor-success.html?name=${encodeURIComponent(payload.name)}&amount=${amount}&vendor=${encodeURIComponent(payload.vendor)}`;
-            }, 1000);
+            updateMsg("⚠️ 系統錯誤，請檢查網路後重試", true);
+            btn.disabled = false;
         }
     };
 
@@ -235,13 +224,15 @@
         const m = document.getElementById('msg');
         m.textContent = text;
         m.className = isError ? "error-msg" : "";
+        if (isError) {
+            m.style.transform = "scale(1.05)";
+            setTimeout(() => m.style.transform = "scale(1)", 200);
+        }
     }
 
     function resetWorkMode() {
-        if (confirm("確定要清除目前的工作身分並重新設定嗎？")) {
-            localStorage.removeItem('work_mode');
-            localStorage.removeItem('work_vendor');
-            localStorage.removeItem('work_action');
+        if (confirm("確定要重置並重新登入廠商身分嗎？")) {
+            localStorage.clear();
             window.location.href = "gate.html";
         }
     }
