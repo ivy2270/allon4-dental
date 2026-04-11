@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>牙材券消費</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root { --primary: #4a90e2; --bg: #f5f7fa; --text: #2c3e50; --error: #e74c3c; }
         * { box-sizing: border-box; }
@@ -19,15 +20,26 @@
         
         /* 密碼切換容器 */
         .password-wrapper { position: relative; width: 100%; }
-        .toggle-btn { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 18px; user-select: none; }
+        .toggle-btn { 
+            position: absolute; 
+            right: 15px; 
+            top: 50%; 
+            transform: translateY(-50%); 
+            cursor: pointer; 
+            color: #999; 
+            font-size: 16px; 
+            user-select: none;
+            z-index: 10;
+        }
+        .toggle-btn:hover { color: var(--primary); }
 
         .btn { width: 100%; padding: 16px; font-size: 18px; font-weight: 600; border: none; border-radius: 12px; cursor: pointer; background: var(--primary); color: white; margin-top: 10px; box-shadow: 0 4px 15px rgba(74, 144, 226, 0.2); }
         .btn:disabled { background: #ccc; cursor: not-allowed; box-shadow: none; }
         
-        #msg { text-align: center; margin-top: 15px; font-weight: bold; min-height: 20px; font-size: 14px; transition: 0.3s; }
+        #msg { text-align: center; margin-top: 15px; font-weight: bold; min-height: 20px; font-size: 14px; }
         .error-msg { color: var(--error); }
         
-        .candidate-item { padding: 12px; border: 1px solid #ffeeba; background: #fff; margin-top: 8px; border-radius: 10px; cursor: pointer; font-weight: bold; color: #856404; display: flex; justify-content: space-between; }
+        .candidate-item { padding: 12px; border: 1px solid #ffeeba; background: #fff; margin-top: 8px; border-radius: 10px; cursor: pointer; font-weight: bold; color: #856404; display: flex; justify-content: space-between; font-size: 14px; }
         .candidate-item:active { background: #fff3cd; }
         
         .custom-footer { margin-top: 20px; padding-bottom: 10px; text-align: center; color: #d1d8dd; font-size: 10px; }
@@ -45,7 +57,7 @@
                 <button type="button" id="lookupBtn" class="btn" style="width:auto; margin:0; padding:0 15px; font-size:14px; white-space:nowrap;">搜尋</button>
             </div>
             <div id="candidate-box" style="display:none; margin-top:10px; background:#fff3cd; padding:12px; border-radius:12px; border:1px solid #ffeeba;">
-                <p style="font-size:12px; margin:0 0 5px 0; font-weight:bold;">找到多位醫師，請選擇序號：</p>
+                <p style="font-size:12px; margin:0 0 5px 0; font-weight:bold;">請選擇正確序號：</p>
                 <div id="candidate-list"></div>
             </div>
         </div>
@@ -72,7 +84,8 @@
             <label>身份證後四碼 (核對身分)</label>
             <div class="password-wrapper">
                 <input type="password" name="password" id="password" placeholder="請輸入四位數字" required maxlength="4">
-                <span class="toggle-btn" id="eyeIcon">👁️</span>
+                <span class="toggle-btn" id="togglePassword">
+                    <i class="fa-regular fa-eye-slash"></i> </span>
             </div>
         </div>
 
@@ -87,7 +100,7 @@
 </div>
 
 <footer class="custom-footer">
-    <p>System v2.5.2 | <a href="javascript:void(0);" onclick="resetWorkMode()" style="color:#d1d8dd; text-decoration:none;">重置身分</a></p>
+    <p>System v2.5.5 | <a href="javascript:void(0);" onclick="resetWorkMode()" style="color:#d1d8dd; text-decoration:none;">重置身分</a></p>
 </footer>
 
 <script>
@@ -95,17 +108,20 @@
     let hiddenBalance = 0;
     let isReady = false;
 
-    // 密碼切換顯示
-    document.getElementById('eyeIcon').onclick = function() {
-        const p = document.getElementById('password');
-        if (p.type === 'password') {
-            p.type = 'text';
-            this.textContent = '🔒';
-        } else {
-            p.type = 'password';
-            this.textContent = '👁️';
-        }
-    };
+    // --- 密碼切換邏輯 (Font Awesome 版) ---
+    const togglePassword = document.querySelector('#togglePassword');
+    const passwordInput = document.querySelector('#password');
+
+    togglePassword.addEventListener('click', function () {
+        // 切換輸入框類型
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        
+        // 切換圖示：如果是 text (看得到) 則顯示普通眼睛 fa-eye；如果是 password (看不到) 則顯示劃掉的眼睛 fa-eye-slash
+        this.innerHTML = type === 'password' 
+            ? '<i class="fa-regular fa-eye-slash"></i>' 
+            : '<i class="fa-regular fa-eye"></i>';
+    });
 
     window.onload = async function() {
         const params = new URLSearchParams(window.location.search);
@@ -143,7 +159,7 @@
     async function performLookup() {
         const name = document.getElementById('docName').value.trim();
         if (!name) return;
-        updateMsg("🔍 搜尋醫師中...", false);
+        updateMsg("🔍 搜尋中...", false);
         try {
             const resp = await fetch(`${GAS_URL}?action=lookup&name=${encodeURIComponent(name)}`);
             const data = await resp.json();
@@ -153,7 +169,7 @@
                 } else {
                     showCandidates(data.message);
                 }
-            } else { updateMsg("❌ 找不到此醫師資料", true); }
+            } else { updateMsg("❌ 找不到醫師資料", true); }
         } catch (e) { updateMsg("⚠️ 連線異常", true); }
     }
 
@@ -169,7 +185,7 @@
             item.onclick = () => applyDoctor(doc);
             list.appendChild(item);
         });
-        updateMsg("請點選正確的序號", false);
+        updateMsg("請點選序號確認身分", false);
     }
 
     async function applyDoctor(doc) {
@@ -181,21 +197,21 @@
         document.getElementById('id-display-group').style.display = 'block';
         document.getElementById('candidate-box').style.display = 'none';
         
-        updateMsg("⌛ 正在取得可用餘額...", false);
+        updateMsg("⌛ 同步餘額中...", false);
         try {
             const resp = await fetch(`${GAS_URL}?action=checkBalance&id=${encodeURIComponent(doc.id)}`);
             const data = await resp.json();
             if (data.status === "success") {
                 hiddenBalance = data.balance;
                 isReady = true;
-                updateMsg(`✅ 資料鎖定成功 (剩餘: ${hiddenBalance})`, false);
-            } else { updateMsg("❌ 無法讀取餘額", true); }
-        } catch (e) { updateMsg("⚠️ 網路連線錯誤", true); }
+                updateMsg(`✅ 資料鎖定成功 (餘額: ${hiddenBalance})`, false);
+            } else { updateMsg("❌ 無法取得餘額", true); }
+        } catch (e) { updateMsg("⚠️ 網路錯誤", true); }
     }
 
     document.getElementById('consumeForm').onsubmit = async function(e) {
         e.preventDefault();
-        if (!isReady) return updateMsg("❌ 請先搜尋並選定醫師", true);
+        if (!isReady) return updateMsg("❌ 請先選定醫師", true);
         
         const btn = document.getElementById('submitBtn');
         const amount = parseInt(document.getElementById('amount').value);
@@ -215,7 +231,7 @@
                 btn.disabled = false;
             }
         } catch (err) {
-            updateMsg("⚠️ 系統錯誤，請檢查網路後重試", true);
+            updateMsg("⚠️ 系統連線異常", true);
             btn.disabled = false;
         }
     };
@@ -224,14 +240,10 @@
         const m = document.getElementById('msg');
         m.textContent = text;
         m.className = isError ? "error-msg" : "";
-        if (isError) {
-            m.style.transform = "scale(1.05)";
-            setTimeout(() => m.style.transform = "scale(1)", 200);
-        }
     }
 
     function resetWorkMode() {
-        if (confirm("確定要重置並重新登入廠商身分嗎？")) {
+        if (confirm("確定要重置廠商身分嗎？")) {
             localStorage.clear();
             window.location.href = "gate.html";
         }
