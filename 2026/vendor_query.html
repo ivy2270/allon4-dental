@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>廠商對帳系統 | 2026 牙醫年會</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Noto+Sans+TC:wght@400;700&display=swap');
+        
+        body { 
+            font-family: 'Inter', 'Noto Sans TC', sans-serif; 
+            background-color: #f1f5f9; 
+            color: #1e293b;
+        }
+
+        /* RWD 表格優化 */
+        @media (max-width: 640px) {
+            .rwd-table thead { display: none; }
+            .rwd-table tr { 
+                display: block; 
+                background: #fff; 
+                border: 1px solid #e2e8f0; 
+                border-radius: 16px; 
+                padding: 16px; 
+                margin-bottom: 12px;
+                box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            }
+            .rwd-table td { 
+                display: flex; 
+                justify-content: space-between; 
+                padding: 10px 0; 
+                border-bottom: 1px solid #f1f5f9;
+                text-align: right;
+            }
+            .rwd-table td:last-child { border-bottom: none; }
+            .rwd-table td::before { 
+                content: attr(data-label); 
+                font-weight: bold; 
+                color: #64748b; 
+                font-size: 0.875rem;
+            }
+        }
+
+        .animate-pulse-subtle { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+    </style>
+</head>
+<body class="p-4 md:p-10">
+
+<div class="max-w-3xl mx-auto">
+    <div class="text-center mb-10">
+        <h1 id="vendor-name" class="text-3xl font-extrabold tracking-tight text-slate-900">廠商對帳系統</h1>
+        <div id="status-badge" class="mt-3 inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-slate-200 text-slate-600">
+            身份驗證中...
+        </div>
+    </div>
+
+    <div id="summary-card" class="bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-3xl shadow-xl p-8 mb-8 text-center animate-fade-in hidden">
+        <p class="text-blue-100 text-xs font-bold uppercase tracking-widest opacity-80">Total Revenue</p>
+        <h2 id="total-amount" class="text-5xl font-black mt-2">$0</h2>
+        <p id="record-count" class="text-blue-200 text-sm mt-3 font-medium">共 0 筆交易紀錄</p>
+    </div>
+
+    <div id="loading-state" class="text-center py-20">
+        <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+        <p class="mt-4 text-slate-500 font-medium">正在載入即時業績...</p>
+    </div>
+
+    <div id="error-state" class="hidden bg-white rounded-3xl shadow-xl p-10 text-center border border-red-100">
+        <div class="text-5xl mb-4">🔒</div>
+        <h3 class="text-xl font-bold text-slate-800">驗證失效</h3>
+        <p class="text-slate-500 mt-2">無法讀取資料，請洽詢大會管理組。</p>
+    </div>
+
+    <div id="detail-box" class="hidden">
+        <div class="flex items-center justify-between mb-4 px-2">
+            <h3 class="font-bold text-slate-700 text-lg">消費明細彙整</h3>
+            <button onclick="location.reload()" class="text-xs bg-white px-3 py-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors">刷新數據</button>
+        </div>
+        
+        <div class="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100">
+            <table class="w-full rwd-table">
+                <thead class="bg-slate-50 text-slate-400 text-xs font-bold uppercase tracking-wider">
+                    <tr>
+                        <th class="text-left py-4 px-6">醫師姓名</th>
+                        <th class="text-right py-4 px-6">消費金額</th>
+                        <th class="text-right py-4 px-6">交易時間</th>
+                        <th class="text-left py-4 px-6">備註</th>
+                    </tr>
+                </thead>
+                <tbody id="records-body" class="text-slate-700 divide-y divide-slate-100">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ⚠️ 請填入您的 GAS Web App 部署網址
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbz9dl-4U63VgkEB-7RLh1IXgxrA8pXXmvWNWzPtNCrsUcZ2IstM4sEvJyqLJo2wZeRx/exec';
+
+    window.onload = async () => {
+        const params = new URLSearchParams(window.location.search);
+        const vendor = params.get('v');    // 廠商名稱
+        const key = params.get('key');    // 隨機驗證碼
+
+        if (!vendor || !key) {
+            showError();
+            return;
+        }
+
+        document.getElementById('vendor-name').innerText = `${vendor} - 對帳看板`;
+
+        try {
+            // 向 GAS 發送廠商專用查詢請求
+            const resp = await fetch(GAS_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ 
+                    action: 'vendorQuery', 
+                    vendor: vendor, 
+                    key: key 
+                })
+            });
+            const data = await resp.json();
+
+            if (data.success) {
+                renderVendorData(data.data);
+                document.getElementById('status-badge').innerHTML = `✅ 已驗證：${vendor}`;
+                document.getElementById('status-badge').className = "mt-3 inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-600";
+            } else {
+                showError();
+            }
+        } catch (e) {
+            showError();
+        } finally {
+            document.getElementById('loading-state').classList.add('hidden');
+        }
+    };
+
+    function renderVendorData(records) {
+        const tbody = document.getElementById('records-body');
+        let total = 0;
+        
+        if (records.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" class="py-10 text-center text-slate-400">尚未有消費紀錄</td></tr>`;
+        } else {
+            records.forEach(row => {
+                const amt = parseInt(row.amount) || 0;
+                total += amt;
+                
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition-colors";
+                tr.innerHTML = `
+                    <td data-label="醫師姓名" class="py-4 px-6 font-bold text-slate-800">${row.name}</td>
+                    <td data-label="消費金額" class="py-4 px-6 text-blue-600 font-extrabold text-right">$${amt.toLocaleString()}</td>
+                    <td data-label="交易時間" class="py-4 px-6 text-slate-400 text-xs text-right">${row.time}</td>
+                    <td data-label="備註" class="py-4 px-6 text-slate-400 text-sm">${row.note || '-'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        document.getElementById('total-amount').innerText = `$${total.toLocaleString()}`;
+        document.getElementById('record-count').innerText = `共 ${records.length} 筆交易紀錄`;
+        
+        document.getElementById('summary-card').classList.remove('hidden');
+        document.getElementById('detail-box').classList.remove('hidden');
+    }
+
+    function showError() {
+        document.getElementById('loading-state').classList.add('hidden');
+        document.getElementById('error-state').classList.remove('hidden');
+        document.getElementById('status-badge').innerHTML = `❌ 驗證失敗`;
+        document.getElementById('status-badge').className = "mt-3 inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-600";
+    }
+</script>
+
+</body>
+</html>

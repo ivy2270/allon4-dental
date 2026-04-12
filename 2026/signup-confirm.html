@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>秘書核費系統 | 2026 牙醫年會</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Noto+Sans+TC:wght@400;700&display=swap');
+        body { font-family: 'Inter', 'Noto Sans TC', sans-serif; background-color: #f8fafc; }
+        .unpaid-card { transition: all 0.3s ease; }
+        .unpaid-card:hover { transform: translateY(-2px); }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+<div class="max-w-4xl mx-auto">
+    <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+        <div>
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight">現場報名核費儀表板</h1>
+            <p class="text-slate-500 text-sm">確認收款後點擊「發放」以更新醫師餘額</p>
+        </div>
+        <button onclick="loadUnpaidList()" class="bg-white border border-slate-200 px-4 py-2 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all flex items-center justify-center">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+            重新整理名單
+        </button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+            <p class="text-slate-400 text-xs font-bold uppercase tracking-wider">待核費人數</p>
+            <h2 id="wait-count" class="text-3xl font-black text-blue-600 mt-1">0</h2>
+        </div>
+    </div>
+
+    <div id="loading-state" class="text-center py-20">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
+        <p class="mt-4 text-slate-500 font-medium">讀取最新報名資料...</p>
+    </div>
+
+    <div id="empty-state" class="hidden bg-white rounded-3xl p-20 text-center border-2 border-dashed border-slate-200">
+        <div class="text-4xl mb-4">☕</div>
+        <h3 class="text-lg font-bold text-slate-800">目前沒有待處理名單</h3>
+        <p class="text-slate-400">所有現場報名醫師皆已完成核費。</p>
+    </div>
+
+    <div id="list-container" class="space-y-4"></div>
+</div>
+
+<script>
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbxHjo9FU4-hj4e0tfSs8AW_MyjbgqST3ctEr2H6va4gVF7MYq98a-GWVBcIJElmjA/exec'; 
+
+    window.onload = loadUnpaidList;
+
+    async function loadUnpaidList() {
+        const container = document.getElementById('list-container');
+        const loader = document.getElementById('loading-state');
+        const empty = document.getElementById('empty-state');
+        
+        container.innerHTML = '';
+        loader.classList.remove('hidden');
+        empty.classList.add('hidden');
+
+        try {
+            const resp = await fetch(GAS_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ action: 'getUnpaidList' })
+            });
+            const data = await resp.json();
+
+            if (data.success) {
+                document.getElementById('wait-count').innerText = data.unpaid.length;
+                
+                if (data.unpaid.length > 0) {
+                    data.unpaid.forEach(item => {
+                        container.appendChild(createDoctorCard(item));
+                    });
+                } else {
+                    empty.classList.remove('hidden');
+                }
+
+                if (data.paid && data.paid.length > 0) {
+                    const divider = document.createElement('div');
+                    divider.className = "py-10 border-t border-slate-200 mt-10";
+                    divider.innerHTML = `<h3 class="text-slate-400 font-bold text-sm uppercase tracking-widest text-center">最近已完成核費</h3>`;
+                    container.appendChild(divider);
+
+                    data.paid.forEach(item => {
+                        const paidDiv = document.createElement('div');
+                        paidDiv.className = "bg-slate-50 p-4 rounded-2xl border border-slate-100 flex justify-between items-center opacity-70 mb-2";
+                        paidDiv.innerHTML = `
+                            <div class="flex items-center gap-3">
+                                <span class="text-green-500 font-bold">✓</span>
+                                <span class="font-bold text-slate-700">${item.name}</span>
+                                <span class="text-xs text-slate-400">(${item.identity})</span>
+                            </div>
+                            <div class="font-black text-slate-500">$${item.amount}</div>
+                        `;
+                        container.appendChild(paidDiv);
+                    });
+                }
+            }
+        } catch (e) {
+            console.error(e);
+            alert("讀取失敗，請確認網路連線或 GAS URL");
+        } finally {
+            loader.classList.add('hidden');
+        }
+    }
+
+    function createDoctorCard(doc) {
+        const div = document.createElement('div');
+        div.className = "bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6 unpaid-card";
+        
+        const badgeColor = doc.identity === '一般牙醫師' ? 'bg-blue-50 text-blue-600' : 
+                           doc.identity === '主協辦會員' ? 'bg-purple-50 text-purple-600' : 'bg-green-50 text-green-600';
+
+        // 使用身分證字號作為 ID 的一部分，避免同名同姓衝突
+        const safeId = doc.docId;
+
+        div.innerHTML = `
+            <div class="flex-1">
+                <div class="flex items-center gap-3">
+                    <h3 class="text-xl font-extrabold text-slate-800">${doc.name}</h3>
+                    <span class="px-3 py-1 rounded-full text-xs font-bold ${badgeColor}">${doc.identity}</span>
+                </div>
+                <p class="text-slate-400 text-sm mt-1">身分證：${doc.docId.substring(0,3)}******${doc.docId.slice(-1)}</p>
+            </div>
+            <div class="flex items-center gap-3 w-full md:w-auto">
+                <div class="relative flex-1 md:w-32">
+                    <span class="absolute left-3 top-3.5 text-slate-400 font-bold">$</span>
+                    <input type="number" id="amt-${safeId}" placeholder="金額" 
+                        class="w-full pl-8 pr-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-blue-600">
+                </div>
+                <button onclick="confirmFee('${doc.name}', '${doc.docId}')" id="btn-${safeId}"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-blue-100 transition-all active:scale-95 whitespace-nowrap">
+                    確認發放
+                </button>
+            </div>
+        `;
+        return div;
+    }
+
+    async function confirmFee(name, docId) {
+        const amtInput = document.getElementById(`amt-${docId}`);
+        const btn = document.getElementById(`btn-${docId}`);
+        const amount = amtInput.value;
+
+        if (!amount || amount <= 0) {
+            alert("請輸入正確的發放金額");
+            return;
+        }
+
+        if (!confirm(`確定為 ${name} 醫師發放 ${amount} 元牙材券嗎？`)) return;
+
+        btn.disabled = true;
+        btn.innerText = "處理中...";
+
+        try {
+            const resp = await fetch(GAS_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ 
+                    action: 'confirmPayment', 
+                    name: name, 
+                    amount: amount,
+                    docId: docId // 補上 GAS 需要的 docId
+                })
+            });
+            const result = await resp.json();
+
+            if (result.success) {
+                // 成功後將卡片淡出並重新整理
+                btn.closest('.unpaid-card').style.opacity = '0.5';
+                btn.innerText = "已完成";
+                setTimeout(() => {
+                    loadUnpaidList(); 
+                }, 500);
+            } else {
+                alert("發放失敗：" + result.error);
+                btn.disabled = false;
+                btn.innerText = "確認發放";
+            }
+        } catch (e) {
+            alert("網路連線錯誤");
+            btn.disabled = false;
+            btn.innerText = "確認發放";
+        }
+    }
+</script>
+
+</body>
+</html>

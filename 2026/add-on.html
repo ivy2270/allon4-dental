@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>加購與抽獎系統</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 p-4 min-h-screen flex flex-col items-center">
+
+    <div class="w-full max-w-md space-y-4">
+        <div id="search-section" class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+            <h2 class="text-lg font-bold text-slate-800 mb-4">1. 搜尋醫師姓名</h2>
+            <div class="flex gap-2">
+                <input type="text" id="search-name" class="flex-1 border-2 rounded-xl p-3 outline-none focus:border-blue-500" placeholder="請輸入全名">
+                <button id="lookup-btn" class="bg-blue-600 text-white px-6 rounded-xl font-bold active:scale-95 transition-all">搜尋</button>
+            </div>
+            
+            <div id="not-found-box" class="hidden mt-6 p-4 bg-orange-50 border-2 border-orange-200 rounded-2xl text-center">
+                <p class="text-orange-700 font-bold mb-3">查無資料，請確認姓名</p>
+                <a href="signup.html" class="inline-block bg-orange-500 text-white px-6 py-2 rounded-lg font-bold shadow-md hover:bg-orange-600 transition-all">
+                    前往現場報名
+                </a>
+            </div>
+
+            <div id="candidate-box" class="hidden mt-4 space-y-2">
+                <p class="text-xs text-slate-400">找到多位同名醫師：</p>
+                <div id="candidate-list" class="space-y-2"></div>
+            </div>
+        </div>
+
+        <div id="input-form" class="hidden bg-white p-6 rounded-3xl shadow-xl border-t-8 border-blue-600 animate-fade-in">
+            <div class="mb-6 p-4 bg-blue-50 rounded-2xl">
+                <p class="text-blue-900 font-bold text-xl" id="display-name"></p>
+                <p class="text-blue-600 text-sm font-mono" id="display-id"></p>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1 ml-1">學校 / 單位</label>
+                    <input type="text" id="school" class="w-full border-2 rounded-xl p-3 outline-none focus:border-blue-500" placeholder="如：陽明">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1 ml-1">獲得方式</label>
+                    <select id="type" class="w-full border-2 rounded-xl p-3 outline-none">
+                        <option value="現場加購">現場加購</option>
+                        <option value="得獎贈送">得獎贈送</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1 ml-1">加購金額</label>
+                    <input type="number" id="amount" class="w-full border-2 rounded-xl p-3 outline-none focus:border-blue-500" placeholder="金額 (10000 為一單位)">
+                </div>
+                <input type="text" id="note" class="w-full border-2 rounded-xl p-3 outline-none" placeholder="備註 (選填)">
+                
+                <button id="submit-btn" class="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-all">確認提交</button>
+            </div>
+        </div>
+
+        <div id="result-card" class="hidden bg-white p-8 rounded-3xl shadow-2xl text-center">
+            <div class="text-5xl mb-4">🎟️</div>
+            <h3 class="text-xl font-bold text-slate-800 mb-2">登錄完成</h3>
+            <p class="text-slate-500 mb-6">發放抽獎券號碼：</p>
+            <div id="number-list" class="flex flex-wrap justify-center gap-2 mb-8"></div>
+            <button onclick="location.reload()" class="w-full bg-slate-800 text-white py-4 rounded-2xl font-bold">繼續下一筆</button>
+        </div>
+    </div>
+
+<script>
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbz9dyg5Luc1Pyp655bo1NiNYdtGlNFl1sVIyqP2-VjDUvxnmWutjXPolIse0VQ7tOSc/exec";
+    let selectedDoc = null;
+
+    document.getElementById('lookup-btn').onclick = async function() {
+        const name = document.getElementById('search-name').value.trim();
+        const nfBox = document.getElementById('not-found-box');
+        const cBox = document.getElementById('candidate-box');
+        
+        if(!name) return;
+        
+        this.disabled = true;
+        nfBox.classList.add('hidden');
+        cBox.classList.add('hidden');
+
+        try {
+            const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: 'lookup', name }) });
+            const data = await res.json();
+            
+            if(data.results.length === 0) {
+                nfBox.classList.remove('hidden');
+            } else if(data.results.length === 1) {
+                readyToSubmit(data.results[0]);
+            } else {
+                showCandidates(data.results);
+            }
+        } finally { this.disabled = false; }
+    };
+
+    function showCandidates(docs) {
+        const box = document.getElementById('candidate-box');
+        const list = document.getElementById('candidate-list');
+        list.innerHTML = '';
+        box.classList.remove('hidden');
+        docs.forEach(doc => {
+            const btn = document.createElement('button');
+            btn.className = "w-full text-left p-4 border-2 rounded-xl hover:border-blue-500 transition-all";
+            btn.innerHTML = `<div class='font-bold'>${doc.name}</div><div class='text-sm text-slate-500'>序號：${doc.id}</div>`;
+            btn.onclick = () => readyToSubmit(doc);
+            list.appendChild(btn);
+        });
+    }
+
+    function readyToSubmit(doc) {
+        selectedDoc = doc;
+        document.getElementById('search-section').classList.add('hidden');
+        document.getElementById('input-form').classList.remove('hidden');
+        document.getElementById('display-name').textContent = doc.name;
+        document.getElementById('display-id').textContent = "報名序號：" + doc.id;
+        
+        // 自動帶入學校：取序號的前兩個字 (例如「陽明001」取「陽明」)
+        // 您可以根據實際序號格式調整 slice 的長度
+        if(doc.id) {
+            document.getElementById('school').value = doc.id.slice(0, 2);
+        }
+    }
+
+    // 提交時加入 school 參數
+    document.getElementById('submit-btn').onclick = async function() {
+        const amount = document.getElementById('amount').value;
+        const school = document.getElementById('school').value;
+        if(!amount || !school) return alert("請輸入學校與金額");
+        
+        this.disabled = true;
+        this.textContent = "傳送中...";
+
+        const payload = {
+            action: 'submit',
+            name: selectedDoc.name,
+            id: selectedDoc.id,
+            school: school, // 傳送學校
+            type: document.getElementById('type').value,
+            amount: amount,
+            note: document.getElementById('note').value
+        };
+      
+
+        const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify(payload) });
+        const result = await res.json();
+
+        if(result.status === 'success') {
+            document.getElementById('input-form').classList.add('hidden');
+            document.getElementById('result-card').classList.remove('hidden');
+            const numList = document.getElementById('number-list');
+            result.numbers.forEach(n => {
+                const s = document.createElement('span');
+                s.className = "bg-amber-100 text-amber-700 px-3 py-1 rounded-lg border-2 border-amber-300 font-mono font-bold text-xl";
+                s.textContent = n;
+                numList.appendChild(s);
+            });
+        }
+    };
+</script>
+
+<style>
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+</style>
+</body>
+</html>

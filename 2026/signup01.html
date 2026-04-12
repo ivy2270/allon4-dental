@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>現場報名系統 | 2026 牙醫年會</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Noto+Sans+TC:wght@400;700&display=swap');
+        body { font-family: 'Inter', 'Noto Sans TC', sans-serif; background-color: #f1f5f9; }
+        .form-card { transition: all 0.5s ease; }
+        .hidden-field { display: none; opacity: 0; transform: translateY(10px); transition: all 0.4s ease; }
+        .show-field { display: block; opacity: 1; transform: translateY(0); }
+    </style>
+</head>
+<body class="p-4 md:p-10">
+
+<div class="max-w-xl mx-auto">
+    <div class="text-center mb-8">
+        <h1 class="text-3xl font-black text-slate-900 tracking-tight">現場報名表單</h1>
+        <p class="text-slate-500 mt-2">On-site Registration</p>
+    </div>
+
+    <div class="bg-white rounded-3xl shadow-xl p-8 border border-slate-100 form-card">
+        <form id="regForm" onsubmit="submitForm(event)">
+            
+            <div class="space-y-6 mb-6">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">醫師姓名 <span class="text-red-500">*</span></label>
+                    <input type="text" id="docName" required oninput="triggerVerify()"
+                        class="w-full px-4 py-4 rounded-xl border border-slate-200 focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all text-lg" 
+                        placeholder="請輸入全名">
+                </div>
+
+                <div class="relative">
+                    <label class="block text-sm font-bold text-slate-700 mb-2">身分證字號 <span class="text-red-500">*</span></label>
+                    <input type="text" id="docId" required oninput="triggerVerify()"
+    maxlength="10" 
+    class="w-full px-4 py-4 rounded-xl border border-slate-200 focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all text-lg uppercase" 
+    placeholder="A123456789">
+                    
+                    <div id="checkLoading" class="hidden absolute right-4 top-11">
+                        <svg class="animate-spin h-6 w-6 text-blue-500" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    </div>
+                </div>
+            </div>
+
+            <p id="dupMsg" class="mt-3 text-sm hidden font-bold p-4 rounded-xl"></p>
+            
+            <div id="loginLink" class="hidden mt-3 text-center">
+                <a id="queryBtn" href="#" class="inline-block bg-slate-800 text-white px-8 py-4 rounded-2xl font-bold shadow-lg hover:bg-black transition-all">您已報名，請點此登入查詢系統</a>
+            </div>
+
+            <div id="extraFields" class="hidden-field space-y-6 border-t border-slate-100 pt-6 mt-6">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">畢業學校 <span class="text-red-500">*</span></label>
+                    <input type="text" id="school" required class="w-full px-4 py-4 rounded-xl border border-slate-200 outline-none" placeholder="例如：北醫、台大">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">報名身份 <span class="text-red-500">*</span></label>
+                    <div class="grid grid-cols-1 gap-3">
+                        <label class="flex items-center p-4 border rounded-xl cursor-pointer hover:bg-slate-50 border-slate-200">
+                            <input type="radio" name="identity" value="一般牙醫師" checked class="w-5 h-5 text-blue-600">
+                            <span class="ml-3 font-semibold text-slate-700">一般牙醫師</span>
+                        </label>
+                        <label class="flex items-center p-4 border rounded-xl cursor-pointer hover:bg-slate-50 border-slate-200">
+                            <input type="radio" name="identity" value="主協辦會員" class="w-5 h-5 text-blue-600">
+                            <span class="ml-3 font-semibold text-slate-700">主協辦會員</span>
+                        </label>
+                        <label class="flex items-center p-4 border rounded-xl cursor-pointer hover:bg-slate-50 border-slate-200">
+                            <input type="radio" name="identity" value="PGY醫師" class="w-5 h-5 text-blue-600">
+                            <span class="ml-3 font-semibold text-slate-700">PGY醫師</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">飲食需要 <span class="text-red-500">*</span></label>
+                    <div class="flex space-x-4">
+                        <label class="flex-1 flex items-center justify-center p-4 border rounded-xl cursor-pointer hover:bg-slate-50 border-slate-200">
+                            <input type="radio" name="diet" value="葷" checked class="w-5 h-5">
+                            <span class="ml-2 font-bold">葷食</span>
+                        </label>
+                        <label class="flex-1 flex items-center justify-center p-4 border rounded-xl cursor-pointer hover:bg-slate-50 border-slate-200">
+                            <input type="radio" name="diet" value="素" class="w-5 h-5">
+                            <span class="ml-2 font-bold">素食</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">備註 (選填)</label>
+                    <textarea id="note" rows="2" class="w-full px-4 py-4 rounded-xl border border-slate-200 outline-none" placeholder="如有其他需求請註明"></textarea>
+                </div>
+
+                <button type="submit" id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-5 rounded-2xl shadow-lg shadow-blue-200 transition-all transform active:scale-95 text-xl">
+                    送出報名
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbxHjo9FU4-hj4e0tfSs8AW_MyjbgqST3ctEr2H6va4gVF7MYq98a-GWVBcIJElmjA/exec'; // 請換上你的網址
+    let lastCheckedKey = ""; // 用於快取，避免重複查詢
+
+function triggerVerify() {
+    const nameEl = document.getElementById('docName');
+    const idEl = document.getElementById('docId');
+    
+    // 自動轉大寫並去除所有空白（防止醫師誤打空格）
+    const name = nameEl.value.trim();
+    const id = idEl.value.trim().toUpperCase();
+    idEl.value = id; // 反饋到畫面，讓醫師看到已轉大寫且無空白
+
+    const dupMsg = document.getElementById('dupMsg');
+    const extraFields = document.getElementById('extraFields');
+    const loginLink = document.getElementById('loginLink');
+
+    // 只有在剛好 10 碼時才觸發 GAS
+    if (name && id.length === 10) {
+        checkDuplicate(name, id);
+    } else {
+        // 只要長度不是 10，就保持畫面乾淨，隱藏所有結果
+        dupMsg.classList.add('hidden');
+        extraFields.classList.remove('show-field');
+        loginLink.classList.add('hidden');
+        lastCheckedKey = ""; // 重設快取，讓下次打滿 10 碼能再次檢查
+    }
+}
+
+async function checkDuplicate(name, id) {
+    const currentKey = name + id;
+    if (currentKey === lastCheckedKey) return; 
+
+    const loader = document.getElementById('checkLoading');
+    const dupMsg = document.getElementById('dupMsg');
+    const extraFields = document.getElementById('extraFields');
+    const loginLink = document.getElementById('loginLink');
+
+    // --- 重要：發送前先隱藏所有結果，避免 UI 跳動 ---
+    dupMsg.classList.add('hidden');
+    extraFields.classList.remove('show-field');
+    loginLink.classList.add('hidden');
+    loader.classList.remove('hidden');
+    
+    try {
+        const resp = await fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ 
+        action: 'checkDoctorExists', 
+        name: name, 
+        docId: id.toUpperCase() // 強制轉大寫，避免 A123 vs a123 比對失敗
+    })
+});
+        const result = await resp.json();
+        lastCheckedKey = currentKey;
+
+        if (result.exists) {
+            // 已報名：顯示錯誤與登入連結
+            dupMsg.innerText = "⚠️ 您已報名過此活動，請直接前往查詢系統。";
+            dupMsg.className = "mt-3 text-sm font-bold text-amber-700 bg-amber-50 p-4 rounded-xl";
+            dupMsg.classList.remove('hidden');
+            loginLink.classList.remove('hidden');
+        } else {
+            // 未報名：顯示成功訊息並展開欄位
+            dupMsg.innerText = "✨ 您不在名單中，請填寫下方資料完成現場報名。";
+            dupMsg.className = "mt-3 text-sm font-bold text-green-700 bg-green-50 p-4 rounded-xl";
+            dupMsg.classList.remove('hidden');
+            extraFields.classList.add('show-field'); // 這時才展開
+        }
+    } catch (e) {
+        console.error(e);
+    } finally {
+        loader.classList.add('hidden');
+    }
+}
+
+    async function submitForm(e) {
+        e.preventDefault();
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerText = "資料同步中...";
+
+        const formData = {
+            action: 'registerOnSite',
+            name: document.getElementById('docName').value.trim(),
+            docId: document.getElementById('docId').value.trim(),
+            school: document.getElementById('school').value.trim(),
+            identity: document.querySelector('input[name="identity"]:checked').value,
+            diet: document.querySelector('input[name="diet"]:checked').value,
+            note: document.getElementById('note').value.trim()
+        };
+
+        try {
+            const resp = await fetch(GAS_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(formData)
+            });
+            const result = await resp.json();
+
+            if (result.success) {
+                alert("報名成功！請至櫃檯完成繳費領券。");
+                location.reload();
+            } else {
+                alert("儲存失敗：" + result.error);
+            }
+        } catch (err) {
+            alert("系統連線異常");
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "送出報名";
+        }
+    }
+</script>
+</body>
+</html>
