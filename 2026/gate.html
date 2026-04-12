@@ -15,10 +15,11 @@
         .warning-icon { font-size: 48px; margin-bottom: 15px; }
         .highlight { color: var(--primary); font-weight: bold; }
         .btn-group { display: flex; flex-direction: column; gap: 12px; margin-top: 25px; }
-        .btn { padding: 14px 24px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block; transition: all 0.2s; }
+        .btn { padding: 14px 24px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block; transition: all 0.2s; text-align: center; }
         .btn-primary { background: var(--primary); color: white; }
         .btn-doctor { background: var(--doctor); color: white; }
         .btn-outline { background: white; color: #777; border: 1px solid #ddd; font-size: 14px; }
+        .btn-manual { background: #eef2f7; color: #4a90e2; border: 1px dashed #4a90e2; font-size: 15px; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -83,8 +84,9 @@
         } else if (currentMode === 'vendor') {
             window.location.href = CONFIG.spendPage + commonParams + `&vendor=${encodeURIComponent(currentVendor)}`;
         } else {
-            // 醫師手機自掃，保留按鈕
-            updateStatus("您好，" + id + " 醫師", "偵測到您的身分，請選擇操作：");
+            // 醫師手機自掃：優先顯示姓名 (修改處)
+            const displayName = name || id; 
+            updateStatus("您好，" + displayName + " 醫師", "偵測到您的身分，請選擇操作：");
             showDoctorOptions(id);
         }
     } 
@@ -92,13 +94,20 @@
     else {
         const currentMode = localStorage.getItem('work_mode');
         if (currentMode) {
-            const modeName = currentMode === 'checkin' ? 
-                (localStorage.getItem('work_action') === 'checkout' ? "報到處 (簽退)" : "報到處 (簽到)") : 
-                localStorage.getItem('work_vendor');
+            const isVendor = currentMode === 'vendor';
+            const modeName = isVendor ? 
+                localStorage.getItem('work_vendor') :
+                (localStorage.getItem('work_action') === 'checkout' ? "報到處 (簽退)" : "報到處 (簽到)");
             
-            // 此處移除醫師中心按鈕，避免廠商混亂
+            // 廠商模式下新增「手動輸入」按鈕 (修改處)
+            let manualLinkHtml = isVendor ? `
+                <a href="form.html" class="btn btn-manual">
+                    <i class="fa-solid fa-pen-to-square"></i> 醫師沒帶 QR Code？手動輸入
+                </a>` : "";
+
             let actionHtml = `
                 <div class="btn-group">
+                    ${manualLinkHtml}
                     <button onclick="clearRole()" class="btn btn-outline">清除並重新設定工作身分</button>
                 </div>
             `;
