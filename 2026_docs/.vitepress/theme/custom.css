@@ -1,0 +1,33 @@
+/* 讓導航欄保持在最上方，但不使用會破壞功能的 fixed !important */
+:root {
+  /* 確保導航列高度 */
+  --vp-nav-height: 64px;
+}
+
+
+.VPNav {
+  /* 使用 sticky 確保它在捲動時固定 */
+  position: sticky !important;
+  top: 0;
+  z-index: 100;
+  background-color: var(--vp-nav-bg-color);
+  border-bottom: 1px solid var(--vp-c-divider);
+}
+
+/* 解決問題 1：修正標題被擋住的問題 */
+/* 當點擊錨點跳轉時，給標題留出空間 */
+h2, h3, h4, h5, h6 {
+  scroll-margin-top: calc(var(--vp-nav-height) + 16x);
+}
+
+/* 解決問題 2：確保漢堡選單彈出時能在最前面 */
+.VPNavScreen {
+  z-index: 500 !important;
+}
+
+/* 如果是手機版，確保選單開啟時背景不會亂掉 */
+@media (max-width: 959px) {
+  .VPNav.open {
+    background-color: var(--vp-c-bg) !important;
+  }
+}
