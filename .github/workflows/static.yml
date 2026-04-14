@@ -2,7 +2,7 @@ name: Deploy Combined Site
 
 on:
   push:
-    branches: [main] # 只要 main 有更新就自動跑
+ 
   workflow_dispatch: # 也保留 Actions 分頁裡的手動執行按鈕
 
 permissions:
