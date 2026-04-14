@@ -1,0 +1,52 @@
+name: Deploy Combined Site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 步驟 1：只去 2026_docs 資料夾編譯 VitePress
+      - name: Build VitePress
+        run: |
+          cd 2026_docs
+          if [ ! -f package.json ]; then npm init -y && npm add -D vitepress vue; fi
+          npx vitepress build
+
+      # 步驟 2：合併檔案 (不影響 2026 原有檔案)
+      - name: Merge Static and Docs
+        run: |
+          # 建立發布暫存區
+          mkdir public_deploy
+          # A. 把整個 Repo 內容複製進去 (保留原本所有的 HTML)
+          cp -R ./* public_deploy/ || true
+          
+          # B. 將 VitePress 編譯出來的東西 (只有 index.html 和相關 JS/CSS)
+          # 覆蓋進去 public_deploy/2026/
+          # 這樣原本 2026/ 裡的 vendor.html 等檔案都不會被動到
+          cp -R 2026_docs/.vitepress/dist/* public_deploy/2026/
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'public_deploy'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
