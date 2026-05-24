@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>報到確認</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+    body { font-family: 'Inter', 'Noto Sans TC', sans-serif; background: #eef2f7; color: #172033; }
+  </style>
+</head>
+<body>
+  <main class="mx-auto flex min-h-screen w-full max-w-lg flex-col justify-center px-4 py-6">
+    <section class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+      <header class="mb-5 flex items-start justify-between gap-3">
+        <div>
+          <p id="modeLabel" class="text-sm font-bold text-blue-700">報到櫃台</p>
+          <h1 class="mt-1 text-2xl font-black text-slate-950">報到確認</h1>
+        </div>
+        <div id="modeIcon" class="flex h-11 w-11 items-center justify-center rounded-md bg-blue-50 text-blue-700">
+          <i data-lucide="scan-line" class="h-6 w-6"></i>
+        </div>
+      </header>
+
+      <div id="loadingView" class="py-8 text-center">
+        <div class="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+        <p class="font-bold text-slate-700">正在讀取報名資料...</p>
+      </div>
+
+      <div id="errorView" class="hidden rounded-md border border-red-200 bg-red-50 p-4 text-red-700">
+        <p class="font-black">讀取失敗</p>
+        <p id="errorText" class="mt-1 text-sm leading-6"></p>
+      </div>
+
+      <div id="contentView" class="hidden space-y-4">
+        <div id="warningBox" class="hidden rounded-md border border-amber-200 bg-amber-50 p-3 text-sm font-bold leading-6 text-amber-800"></div>
+
+        <section class="rounded-md border border-slate-200 p-4">
+          <p class="text-sm font-bold text-slate-500">姓名</p>
+          <p id="doctorName" class="mt-1 text-3xl font-black text-slate-950"></p>
+          <p id="registrationNo" class="mt-1 font-mono text-sm text-slate-500"></p>
+        </section>
+
+        <dl class="grid gap-3 text-sm">
+          <div class="flex items-center justify-between gap-3 rounded-md bg-slate-50 p-3">
+            <dt class="font-bold text-slate-600">分流櫃台</dt>
+            <dd id="branchSchool" class="font-black text-blue-700"></dd>
+          </div>
+          <div class="flex items-center justify-between gap-3 rounded-md bg-slate-50 p-3">
+            <dt class="font-bold text-slate-600">學校</dt>
+            <dd id="schoolName" class="font-black text-slate-900"></dd>
+          </div>
+          <div class="flex items-center justify-between gap-3 rounded-md bg-slate-50 p-3">
+            <dt class="font-bold text-slate-600">報名身份</dt>
+            <dd id="identityType" class="font-black text-slate-900"></dd>
+          </div>
+          <div class="flex items-center justify-between gap-3 rounded-md bg-slate-50 p-3">
+            <dt class="font-bold text-slate-600">付款狀態</dt>
+            <dd id="paymentStatus" class="font-black"></dd>
+          </div>
+          <div class="flex items-center justify-between gap-3 rounded-md bg-slate-50 p-3">
+            <dt class="font-bold text-slate-600">牙材券金額</dt>
+            <dd id="voucherAmount" class="font-black text-emerald-700"></dd>
+          </div>
+          <div class="flex items-center justify-between gap-3 rounded-md bg-slate-50 p-3">
+            <dt class="font-bold text-slate-600">報到狀態</dt>
+            <dd id="checkinStatus" class="font-black"></dd>
+          </div>
+        </dl>
+
+        <button id="confirmBtn" class="flex w-full items-center justify-center gap-2 rounded-md bg-blue-700 px-4 py-4 text-lg font-black text-white shadow-sm hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-400">
+          <i data-lucide="check" class="h-5 w-5"></i>
+          確認報到
+        </button>
+      </div>
+    </section>
+
+    <footer class="mt-4 text-center text-xs text-slate-400">
+      <button id="resetModeBtn" class="font-bold underline">清除工作模式</button>
+    </footer>
+  </main>
+
+  <script>
+    const CHECKIN_ENDPOINT = "https://ytfpmewrlsbvwgdfzknx.supabase.co/functions/v1/checkin";
+    const SUPABASE_ANON_KEY = "";
+
+    const params = new URLSearchParams(window.location.search);
+    const registrationNo = params.get("id") || "";
+    const qrName = params.get("name") || "";
+    const checkinAction = params.get("action") || "checkin";
+    let currentRegistration = null;
+
+    const els = {
+      modeLabel: document.getElementById("modeLabel"),
+      loadingView: document.getElementById("loadingView"),
+      errorView: document.getElementById("errorView"),
+      errorText: document.getElementById("errorText"),
+      contentView: document.getElementById("contentView"),
+      warningBox: document.getElementById("warningBox"),
+      doctorName: document.getElementById("doctorName"),
+      registrationNo: document.getElementById("registrationNo"),
+      branchSchool: document.getElementById("branchSchool"),
+      schoolName: document.getElementById("schoolName"),
+      identityType: document.getElementById("identityType"),
+      paymentStatus: document.getElementById("paymentStatus"),
+      voucherAmount: document.getElementById("voucherAmount"),
+      checkinStatus: document.getElementById("checkinStatus"),
+      confirmBtn: document.getElementById("confirmBtn"),
+      resetModeBtn: document.getElementById("resetModeBtn")
+    };
+
+    function currency(value) {
+      return "NT$ " + Number(value || 0).toLocaleString("zh-TW");
+    }
+
+    function apiHeaders() {
+      const headers = { "Content-Type": "application/json" };
+      if (SUPABASE_ANON_KEY) {
+        headers.apikey = SUPABASE_ANON_KEY;
+        headers.Authorization = `Bearer ${SUPABASE_ANON_KEY}`;
+      }
+      return headers;
+    }
+
+    async function callApi(payload) {
+      const response = await fetch(CHECKIN_ENDPOINT, {
+        method: "POST",
+        headers: apiHeaders(),
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "操作失敗");
+      }
+      return result;
+    }
+
+    function paymentClass(status) {
+      if (status === "matched") return "text-emerald-700";
+      if (status === "pending") return "text-amber-700";
+      return "text-red-700";
+    }
+
+    function render(registration) {
+      currentRegistration = registration;
+      const doctor = registration.doctors || {};
+      const voucherAccount = registration.voucher_accounts || {};
+      const warnings = [];
+
+      if (registration.nameWarning) warnings.push(registration.nameWarning);
+      if (registration.payment_status !== "matched") warnings.push("付款狀態尚非已入帳，請人工確認是否可報到。");
+      if (registration.status === "cancelled") warnings.push("此報名已取消，請勿報到。");
+      if (voucherAccount.checked_in) warnings.push("此報名已經完成報到。");
+
+      els.warningBox.classList.toggle("hidden", warnings.length === 0);
+      els.warningBox.innerHTML = warnings.map(item => `<p>${item}</p>`).join("");
+
+      els.doctorName.textContent = doctor.name || qrName || "-";
+      els.registrationNo.textContent = registration.registration_no || registrationNo;
+      els.branchSchool.textContent = registration.branch_school || "-";
+      els.schoolName.textContent = doctor.school || "-";
+      els.identityType.textContent = doctor.identity_type || "-";
+      els.paymentStatus.textContent = registration.payment_label || registration.payment_status || "-";
+      els.paymentStatus.className = "font-black " + paymentClass(registration.payment_status);
+      els.voucherAmount.textContent = currency(voucherAccount.expected_amount || registration.voucher_amount || 0);
+      els.checkinStatus.textContent = voucherAccount.checked_in ? "已報到" : "尚未報到";
+      els.checkinStatus.className = voucherAccount.checked_in ? "font-black text-emerald-700" : "font-black text-slate-900";
+
+      els.confirmBtn.disabled = registration.status === "cancelled" || (checkinAction === "checkin" && voucherAccount.checked_in);
+      els.confirmBtn.innerHTML = checkinAction === "checkout"
+        ? '<i data-lucide="undo-2" class="h-5 w-5"></i> 取消報到狀態'
+        : '<i data-lucide="check" class="h-5 w-5"></i> 確認報到';
+      lucide.createIcons();
+    }
+
+    async function lookup() {
+      if (!registrationNo) {
+        showError("QR Code 缺少報名序號。");
+        return;
+      }
+
+      try {
+        const result = await callApi({
+          action: "lookup",
+          registrationNo,
+          name: qrName
+        });
+        els.loadingView.classList.add("hidden");
+        els.contentView.classList.remove("hidden");
+        render(result.registration);
+      } catch (error) {
+        showError(error.message || "讀取失敗");
+      }
+    }
+
+    function showError(message) {
+      els.loadingView.classList.add("hidden");
+      els.contentView.classList.add("hidden");
+      els.errorView.classList.remove("hidden");
+      els.errorText.textContent = message;
+    }
+
+    async function confirmCheckin() {
+      if (!currentRegistration) return;
+      const actionText = checkinAction === "checkout" ? "取消報到狀態" : "確認報到";
+      if (!confirm(`確定要${actionText}？`)) return;
+
+      els.confirmBtn.disabled = true;
+      try {
+        const result = await callApi({
+          action: "confirm",
+          registrationNo,
+          name: qrName,
+          checkinAction
+        });
+        render(result.registration);
+      } catch (error) {
+        alert(error.message || "操作失敗");
+        els.confirmBtn.disabled = false;
+      }
+    }
+
+    els.modeLabel.textContent = checkinAction === "checkout" ? "報到櫃台｜取消報到" : "報到櫃台";
+    els.confirmBtn.addEventListener("click", confirmCheckin);
+    els.resetModeBtn.addEventListener("click", () => {
+      if (confirm("確定要清除這支手機的工作模式？")) {
+        localStorage.removeItem("work_mode");
+        localStorage.removeItem("work_action");
+        localStorage.removeItem("work_vendor");
+        window.location.href = "gate.html";
+      }
+    });
+
+    lookup();
+    lucide.createIcons();
+  </script>
+</body>
+</html>

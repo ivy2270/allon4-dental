@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Code 入口</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+    body { font-family: 'Inter', 'Noto Sans TC', sans-serif; background: #eef2f7; color: #172033; }
+  </style>
+</head>
+<body>
+  <main class="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-6">
+    <section class="rounded-md border border-slate-200 bg-white p-6 text-center shadow-sm">
+      <div id="iconBox" class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-md bg-blue-50 text-blue-700">
+        <i data-lucide="scan-line" class="h-7 w-7"></i>
+      </div>
+      <p id="eyebrow" class="text-sm font-bold text-blue-700">QR Code 入口</p>
+      <h1 id="title" class="mt-1 text-2xl font-black text-slate-950">正在判斷工作模式</h1>
+      <p id="message" class="mt-3 text-sm leading-6 text-slate-600">請稍候...</p>
+      <div id="actions" class="mt-5 grid gap-2"></div>
+    </section>
+  </main>
+
+  <script>
+    const CONFIG = {
+      checkinPage: "checkin.html",
+      spendPage: "form.html",
+      queryPage: "doctor_query.html"
+    };
+
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("id") || "";
+    const name = params.get("name") || "";
+    const setRole = params.get("role") || "";
+    const setVendor = params.get("vendor") || "";
+    const setAction = params.get("action") || "";
+
+    const els = {
+      iconBox: document.getElementById("iconBox"),
+      eyebrow: document.getElementById("eyebrow"),
+      title: document.getElementById("title"),
+      message: document.getElementById("message"),
+      actions: document.getElementById("actions")
+    };
+
+    function setContent({ eyebrow, title, message, icon = "scan-line", tone = "blue", actions = "" }) {
+      const toneClass = {
+        blue: "bg-blue-50 text-blue-700",
+        emerald: "bg-emerald-50 text-emerald-700",
+        amber: "bg-amber-50 text-amber-700",
+        red: "bg-red-50 text-red-700",
+        slate: "bg-slate-100 text-slate-700"
+      }[tone] || "bg-blue-50 text-blue-700";
+
+      els.iconBox.className = `mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-md ${toneClass}`;
+      els.iconBox.innerHTML = `<i data-lucide="${icon}" class="h-7 w-7"></i>`;
+      els.eyebrow.textContent = eyebrow;
+      els.title.textContent = title;
+      els.message.innerHTML = message;
+      els.actions.innerHTML = actions;
+      lucide.createIcons();
+    }
+
+    function modeName() {
+      const mode = localStorage.getItem("work_mode");
+      if (mode === "checkin") {
+        return localStorage.getItem("work_action") === "checkout" ? "報到櫃台｜取消報到" : "報到櫃台";
+      }
+      if (mode === "vendor") {
+        return `廠商消費｜${localStorage.getItem("work_vendor") || ""}`;
+      }
+      if (mode === "addon") return "牙材券加購";
+      if (mode === "lottery") return "抽獎券處理";
+      return "";
+    }
+
+    function clearRole() {
+      if (!confirm("確定要清除這支手機的工作模式？")) return;
+      localStorage.removeItem("work_mode");
+      localStorage.removeItem("work_action");
+      localStorage.removeItem("work_vendor");
+      location.href = "gate.html";
+    }
+
+    window.clearRole = clearRole;
+
+    function configureRole() {
+      if (setRole === "checkin") {
+        const action = setAction || "checkin";
+        localStorage.setItem("work_mode", "checkin");
+        localStorage.setItem("work_action", action);
+        localStorage.removeItem("work_vendor");
+        setContent({
+          eyebrow: "工作模式已設定",
+          title: action === "checkout" ? "取消報到模式" : "報到櫃台模式",
+          message: "這支手機已設定完成。接下來請掃描參加者名牌 QR Code。",
+          icon: "check-circle-2",
+          tone: "emerald"
+        });
+        setTimeout(() => location.href = "gate.html", 1200);
+        return true;
+      }
+
+      if (setVendor) {
+        localStorage.setItem("work_mode", "vendor");
+        localStorage.setItem("work_vendor", setVendor);
+        localStorage.removeItem("work_action");
+        setContent({
+          eyebrow: "工作模式已設定",
+          title: "廠商消費模式",
+          message: `目前廠商：<strong>${setVendor}</strong><br>接下來請掃描參加者名牌 QR Code。`,
+          icon: "store",
+          tone: "emerald"
+        });
+        setTimeout(() => location.href = "gate.html", 1200);
+        return true;
+      }
+
+      if (setRole === "addon" || setRole === "lottery") {
+        localStorage.setItem("work_mode", setRole);
+        localStorage.removeItem("work_action");
+        localStorage.removeItem("work_vendor");
+        setContent({
+          eyebrow: "工作模式已設定",
+          title: setRole === "addon" ? "牙材券加購模式" : "抽獎券處理模式",
+          message: "這個模式的頁面之後會接上。接下來請掃描參加者名牌 QR Code。",
+          icon: setRole === "addon" ? "badge-plus" : "ticket",
+          tone: "emerald"
+        });
+        setTimeout(() => location.href = "gate.html", 1200);
+        return true;
+      }
+
+      return false;
+    }
+
+    function routeParticipant() {
+      const mode = localStorage.getItem("work_mode");
+      const action = localStorage.getItem("work_action") || "checkin";
+      const vendor = localStorage.getItem("work_vendor") || "";
+      const commonParams = `?id=${encodeURIComponent(id)}&name=${encodeURIComponent(name)}`;
+
+      if (mode === "checkin") {
+        location.href = `${CONFIG.checkinPage}${commonParams}&action=${encodeURIComponent(action)}`;
+        return;
+      }
+
+      if (mode === "vendor") {
+        location.href = `${CONFIG.spendPage}${commonParams}&vendor=${encodeURIComponent(vendor)}`;
+        return;
+      }
+
+      if (mode === "addon" || mode === "lottery") {
+        setContent({
+          eyebrow: "功能尚未接上",
+          title: mode === "addon" ? "牙材券加購" : "抽獎券處理",
+          message: "這個工作模式稍後再接 Supabase。請先切換到其他工作模式。",
+          icon: "circle-alert",
+          tone: "amber",
+          actions: `<button onclick="clearRole()" class="rounded-md border border-slate-200 px-4 py-3 font-black text-slate-700">清除工作模式</button>`
+        });
+        return;
+      }
+
+      setContent({
+        eyebrow: "未設定工作模式",
+        title: name ? `${name} 您好` : "請先設定工作模式",
+        message: id
+          ? "這支手機尚未設定成報到或消費模式。若您是參加者，可進入查詢頁；若您是工作人員，請先掃描工作模式 QR Code。"
+          : "請先掃描工作模式 QR Code，或掃描參加者名牌 QR Code。",
+        icon: "circle-help",
+        tone: "amber",
+        actions: id
+          ? `<a href="${CONFIG.queryPage}?id=${encodeURIComponent(id)}&name=${encodeURIComponent(name)}" class="rounded-md bg-blue-700 px-4 py-3 font-black text-white">查詢我的資料</a>`
+          : ""
+      });
+    }
+
+    if (!configureRole()) {
+      if (id) {
+        routeParticipant();
+      } else {
+        const current = modeName();
+        if (current) {
+          setContent({
+            eyebrow: "工作模式已啟用",
+            title: current,
+            message: "請掃描參加者名牌 QR Code。<br>若要切換工作身份，請先清除工作模式或掃描新的工作模式 QR Code。",
+            icon: "smartphone",
+            tone: "blue",
+            actions: `<button onclick="clearRole()" class="rounded-md border border-slate-200 px-4 py-3 font-black text-slate-700">清除工作模式</button>`
+          });
+        } else {
+          setContent({
+            eyebrow: "尚未設定",
+            title: "請先設定工作模式",
+            message: "工作人員請先掃描報到櫃台或廠商模式 QR Code。參加者可掃描名牌 QR Code 進入查詢。",
+            icon: "scan-line",
+            tone: "slate"
+          });
+        }
+      }
+    }
+  </script>
+</body>
+</html>
