@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>牙材券消費</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+    body { font-family: 'Inter', 'Noto Sans TC', sans-serif; background: #eef2f7; color: #172033; }
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  </style>
+</head>
+<body>
+  <main class="mx-auto flex min-h-screen w-full max-w-lg flex-col justify-center px-4 py-6">
+    <section class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+      <header class="mb-5 flex items-start justify-between gap-3">
+        <div>
+          <p class="text-sm font-bold text-blue-700">廠商消費</p>
+          <h1 class="mt-1 text-2xl font-black text-slate-950">牙材券扣款</h1>
+        </div>
+        <div class="flex h-11 w-11 items-center justify-center rounded-md bg-blue-50 text-blue-700">
+          <i data-lucide="receipt-text" class="h-6 w-6"></i>
+        </div>
+      </header>
+
+      <!-- Loading -->
+      <div id="loadingView" class="py-8 text-center">
+        <div class="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+        <p class="font-bold text-slate-700">正在讀取醫師資料...</p>
+      </div>
+
+      <!-- Error -->
+      <div id="errorView" class="hidden rounded-md border border-red-200 bg-red-50 p-4 text-red-700">
+        <p class="font-black">讀取失敗</p>
+        <p id="errorText" class="mt-1 text-sm leading-6"></p>
+        <button id="switchToManualBtn" class="mt-3 hidden rounded-md border border-red-300 bg-white px-3 py-2 text-sm font-bold text-red-700">
+          改為手動輸入醫師姓名
+        </button>
+      </div>
+
+      <!-- Manual: Step 1 — Name search -->
+      <div id="manualSearchView" class="hidden space-y-4">
+        <div class="rounded-md bg-amber-50 border border-amber-200 px-4 py-3">
+          <p class="text-sm font-bold text-amber-700">手動查詢模式</p>
+          <p class="text-xs text-amber-600 mt-0.5">未掃描 QR Code，請輸入醫師姓名搜尋</p>
+        </div>
+        <label class="block">
+          <span class="mb-1 block text-sm font-bold text-slate-700">醫師姓名</span>
+          <div class="flex gap-2">
+            <input id="manualNameInput" type="text" class="flex-1 rounded-md border border-slate-300 px-3 py-3 font-bold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" placeholder="輸入姓名">
+            <button id="searchNameBtn" class="rounded-md bg-blue-700 px-4 py-3 font-black text-white">搜尋</button>
+          </div>
+        </label>
+        <div id="searchError" class="hidden rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm font-bold text-red-700"></div>
+        <!-- Candidates list -->
+        <div id="candidatesList" class="hidden space-y-2">
+          <p class="text-sm font-bold text-slate-600">找到以下醫師，請選擇：</p>
+          <div id="candidatesItems"></div>
+        </div>
+      </div>
+
+      <!-- Manual: Step 2 — Password -->
+      <div id="manualPasswordView" class="hidden space-y-4">
+        <div class="rounded-md border border-slate-200 p-4">
+          <p class="text-sm font-bold text-slate-500">已選擇醫師</p>
+          <p id="selectedNameText" class="mt-1 text-2xl font-black text-slate-950"></p>
+          <p id="selectedRegNoText" class="mt-0.5 font-mono text-sm text-slate-500"></p>
+        </div>
+        <label class="block">
+          <span class="mb-1 block text-sm font-bold text-slate-700">醫師密碼（身份證後四碼）</span>
+          <input id="passwordInput" type="password" class="w-full rounded-md border border-slate-300 px-3 py-3 font-bold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" placeholder="身份證後四碼">
+        </label>
+        <div id="passwordError" class="hidden rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm font-bold text-red-700"></div>
+        <div class="flex gap-2">
+          <button id="backToSearchBtn" class="flex-1 rounded-md border border-slate-200 px-4 py-3 font-black text-slate-700">返回</button>
+          <button id="verifyPasswordBtn" class="flex-1 rounded-md bg-blue-700 px-4 py-3 font-black text-white">確認身份</button>
+        </div>
+      </div>
+
+      <!-- Consume form -->
+      <form id="consumeForm" class="hidden space-y-4">
+        <section class="rounded-md border border-slate-200 p-4">
+          <p class="text-sm font-bold text-slate-500">醫師</p>
+          <p id="doctorNameText" class="mt-1 text-3xl font-black text-slate-950"></p>
+          <p id="registrationNoText" class="mt-1 font-mono text-sm text-slate-500"></p>
+        </section>
+
+        <div class="rounded-md bg-slate-50 p-3">
+          <p class="text-sm font-bold text-slate-500">廠商</p>
+          <p id="vendorText" class="mt-1 text-xl font-black text-blue-700"></p>
+        </div>
+
+        <label class="block">
+          <span class="mb-1 block text-sm font-bold text-slate-700">消費金額</span>
+          <input id="amountInput" type="number" min="1000" step="1000" required
+            class="w-full rounded-md border border-slate-300 px-3 py-4 text-2xl font-black outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" placeholder="1000">
+          <span class="mt-1 block text-sm text-slate-500">需為 1000 的倍數。系統只會顯示是否足夠，不顯示實際餘額。</span>
+        </label>
+
+        <p id="amountStatus" class="hidden rounded-md px-3 py-2 text-sm font-bold"></p>
+
+        <label class="block">
+          <span class="mb-1 block text-sm font-bold text-slate-700">備註</span>
+          <input id="noteInput" class="w-full rounded-md border border-slate-300 px-3 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" placeholder="選填">
+        </label>
+
+        <button id="submitBtn" class="flex w-full items-center justify-center gap-2 rounded-md bg-blue-700 px-4 py-4 text-lg font-black text-white shadow-sm hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-400">
+          <i data-lucide="check" class="h-5 w-5"></i>
+          確認扣款
+        </button>
+      </form>
+    </section>
+
+    <footer class="mt-4 flex justify-center gap-4 text-xs text-slate-400">
+      <button id="switchManualFooterBtn" class="font-bold underline">手動輸入醫師</button>
+      <button id="resetModeBtn" class="font-bold underline">清除工作模式</button>
+    </footer>
+  </main>
+
+  <script>
+    const VOUCHER_ENDPOINT = "https://ytfpmewrlsbvwgdfzknx.supabase.co/functions/v1/voucher-consume";
+    const SUPABASE_ANON_KEY = "";
+
+    const params = new URLSearchParams(window.location.search);
+    const registrationNo = params.get("id") || "";
+    const qrName = params.get("name") || "";
+    const vendor = params.get("vendor") || localStorage.getItem("work_vendor") || "";
+
+    let amountCheckTimer = null;
+    let amountSufficient = false;
+    let doctorName = qrName;
+    let activeRegistrationNo = registrationNo; // may be overridden by manual flow
+
+    // Selected candidate in manual flow
+    let selectedCandidate = null;
+
+    const els = {
+      loadingView: document.getElementById("loadingView"),
+      errorView: document.getElementById("errorView"),
+      errorText: document.getElementById("errorText"),
+      switchToManualBtn: document.getElementById("switchToManualBtn"),
+      manualSearchView: document.getElementById("manualSearchView"),
+      manualNameInput: document.getElementById("manualNameInput"),
+      searchNameBtn: document.getElementById("searchNameBtn"),
+      searchError: document.getElementById("searchError"),
+      candidatesList: document.getElementById("candidatesList"),
+      candidatesItems: document.getElementById("candidatesItems"),
+      manualPasswordView: document.getElementById("manualPasswordView"),
+      selectedNameText: document.getElementById("selectedNameText"),
+      selectedRegNoText: document.getElementById("selectedRegNoText"),
+      passwordInput: document.getElementById("passwordInput"),
+      passwordError: document.getElementById("passwordError"),
+      backToSearchBtn: document.getElementById("backToSearchBtn"),
+      verifyPasswordBtn: document.getElementById("verifyPasswordBtn"),
+      form: document.getElementById("consumeForm"),
+      doctorNameText: document.getElementById("doctorNameText"),
+      registrationNoText: document.getElementById("registrationNoText"),
+      vendorText: document.getElementById("vendorText"),
+      amountInput: document.getElementById("amountInput"),
+      amountStatus: document.getElementById("amountStatus"),
+      noteInput: document.getElementById("noteInput"),
+      submitBtn: document.getElementById("submitBtn"),
+      resetModeBtn: document.getElementById("resetModeBtn"),
+      switchManualFooterBtn: document.getElementById("switchManualFooterBtn"),
+    };
+
+    function hideAll() {
+      [els.loadingView, els.errorView, els.manualSearchView, els.manualPasswordView, els.form].forEach(el => el.classList.add("hidden"));
+    }
+
+    function apiHeaders() {
+      const headers = { "Content-Type": "application/json" };
+      if (SUPABASE_ANON_KEY) {
+        headers.apikey = SUPABASE_ANON_KEY;
+        headers.Authorization = `Bearer ${SUPABASE_ANON_KEY}`;
+      }
+      return headers;
+    }
+
+    async function callApi(payload) {
+      const response = await fetch(VOUCHER_ENDPOINT, {
+        method: "POST",
+        headers: apiHeaders(),
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        const error = new Error(result.error || "操作失敗");
+        error.result = result;
+        throw error;
+      }
+      return result;
+    }
+
+    function currency(value) {
+      return "NT$ " + Number(value || 0).toLocaleString("zh-TW");
+    }
+
+    function showAmountStatus(type, message) {
+      els.amountStatus.className = "rounded-md px-3 py-2 text-sm font-bold";
+      if (type === "ok") els.amountStatus.classList.add("bg-emerald-50", "text-emerald-700");
+      else if (type === "loading") els.amountStatus.classList.add("bg-slate-50", "text-slate-600");
+      else els.amountStatus.classList.add("bg-red-50", "text-red-700");
+      els.amountStatus.textContent = message;
+      els.amountStatus.classList.remove("hidden");
+    }
+
+    function showError(message, showManualButton = false) {
+      hideAll();
+      els.errorView.classList.remove("hidden");
+      els.errorText.textContent = message;
+      if (showManualButton) {
+        els.switchToManualBtn.classList.remove("hidden");
+      } else {
+        els.switchToManualBtn.classList.add("hidden");
+      }
+    }
+
+    function showManualSearch() {
+      hideAll();
+      els.manualSearchView.classList.remove("hidden");
+      els.candidatesList.classList.add("hidden");
+      els.searchError.classList.add("hidden");
+      els.manualNameInput.focus();
+    }
+
+    function showConsumeForm(name, regNo, vendorName) {
+      doctorName = name;
+      activeRegistrationNo = regNo;
+      hideAll();
+      els.doctorNameText.textContent = name;
+      els.registrationNoText.textContent = regNo;
+      els.vendorText.textContent = vendorName;
+      els.form.classList.remove("hidden");
+      lucide.createIcons();
+    }
+
+    function getAmount() { return Number(els.amountInput.value || 0); }
+
+    async function lookup() {
+      if (!registrationNo || !qrName) return showError("QR Code 缺少醫師姓名或報名序號。", true);
+      if (!vendor) return showError("此手機尚未設定廠商模式，請先掃描廠商工作模式 QR Code。");
+
+      try {
+        const result = await callApi({ action: "lookup", registrationNo, name: qrName, vendor });
+        showConsumeForm(result.doctor.name, result.doctor.registrationNo, result.vendor);
+      } catch (error) {
+        showError(error.message || "讀取失敗", true);
+      }
+    }
+
+    async function searchByName() {
+      const name = els.manualNameInput.value.trim();
+      if (!name) return;
+      els.searchError.classList.add("hidden");
+      els.candidatesList.classList.add("hidden");
+      els.searchNameBtn.disabled = true;
+      els.searchNameBtn.textContent = "搜尋中...";
+
+      try {
+        const result = await callApi({ action: "searchByName", name });
+        const candidates = result.candidates || [];
+
+        if (candidates.length === 1) {
+          // Only one match — go straight to password
+          selectCandidate(candidates[0]);
+          return;
+        }
+
+        // Multiple matches — show list
+        els.candidatesItems.innerHTML = candidates.map(c => `
+          <button type="button"
+            class="candidate-btn w-full rounded-md border border-slate-200 px-4 py-3 text-left hover:border-blue-400 hover:bg-blue-50 transition-colors"
+            data-reg="${c.registrationNo}" data-name="${c.name}">
+            <span class="font-black text-slate-950">${c.name}</span>
+            <span class="ml-2 font-mono text-sm text-slate-500">${c.registrationNo}</span>
+          </button>
+        `).join("");
+        els.candidatesList.classList.remove("hidden");
+
+        els.candidatesItems.querySelectorAll(".candidate-btn").forEach(btn => {
+          btn.addEventListener("click", () => {
+            selectCandidate({ name: btn.dataset.name, registrationNo: btn.dataset.reg });
+          });
+        });
+      } catch (error) {
+        els.searchError.textContent = error.message || "搜尋失敗";
+        els.searchError.classList.remove("hidden");
+      } finally {
+        els.searchNameBtn.disabled = false;
+        els.searchNameBtn.textContent = "搜尋";
+      }
+    }
+
+    function selectCandidate(candidate) {
+      selectedCandidate = candidate;
+      hideAll();
+      els.selectedNameText.textContent = candidate.name;
+      els.selectedRegNoText.textContent = candidate.registrationNo;
+      els.manualPasswordView.classList.remove("hidden");
+      els.passwordInput.value = "";
+      els.passwordError.classList.add("hidden");
+      els.passwordInput.focus();
+    }
+
+    async function verifyPassword() {
+      if (!selectedCandidate) return;
+      const password = els.passwordInput.value;
+      if (!password) return;
+
+      els.verifyPasswordBtn.disabled = true;
+      els.verifyPasswordBtn.textContent = "驗證中...";
+      els.passwordError.classList.add("hidden");
+
+      try {
+        await callApi({ action: "verifyPassword", registrationNo: selectedCandidate.registrationNo, password });
+        // Password OK — now do lookup to confirm vendor eligibility & get doctor info
+        if (!vendor) {
+          hideAll();
+          els.manualPasswordView.classList.remove("hidden");
+          els.passwordError.textContent = "此手機尚未設定廠商模式，請先掃描廠商工作模式 QR Code。";
+          els.passwordError.classList.remove("hidden");
+          return;
+        }
+        const result = await callApi({
+          action: "lookup",
+          registrationNo: selectedCandidate.registrationNo,
+          name: selectedCandidate.name,
+          vendor
+        });
+        showConsumeForm(result.doctor.name, result.doctor.registrationNo, result.vendor);
+      } catch (error) {
+        els.passwordError.textContent = error.message || "驗證失敗";
+        els.passwordError.classList.remove("hidden");
+      } finally {
+        els.verifyPasswordBtn.disabled = false;
+        els.verifyPasswordBtn.textContent = "確認身份";
+      }
+    }
+
+    async function checkAmount() {
+      amountSufficient = false;
+      const amount = getAmount();
+      if (!amount) { els.amountStatus.classList.add("hidden"); return; }
+      if (amount <= 0 || amount % 1000 !== 0) {
+        showAmountStatus("error", "金額需為 1000 的倍數。"); return;
+      }
+
+      showAmountStatus("loading", "正在檢查是否足夠...");
+      try {
+        const result = await callApi({ action: "checkAmount", registrationNo: activeRegistrationNo, name: doctorName, vendor, amount });
+        amountSufficient = Boolean(result.sufficient);
+        showAmountStatus(amountSufficient ? "ok" : "error", amountSufficient ? "牙材券可支付此筆金額。" : "牙材券餘額不足。");
+      } catch (error) {
+        showAmountStatus("error", error.message || "檢查失敗");
+      }
+    }
+
+    async function submitConsume(event) {
+      event.preventDefault();
+      const amount = getAmount();
+      if (!amountSufficient) {
+        await checkAmount();
+        if (!amountSufficient) return;
+      }
+
+      if (!confirm(`確認扣款 ${currency(amount)}？`)) return;
+      els.submitBtn.disabled = true;
+
+      try {
+        const result = await callApi({
+          action: "consume",
+          registrationNo: activeRegistrationNo,
+          name: doctorName,
+          vendor,
+          amount,
+          note: els.noteInput.value.trim()
+        });
+        window.location.href = `vendor-success.html?name=${encodeURIComponent(result.doctorName || doctorName)}&amount=${encodeURIComponent(result.amount)}&vendor=${encodeURIComponent(result.vendor)}`;
+      } catch (error) {
+        showAmountStatus("error", error.message || "扣款失敗");
+        els.submitBtn.disabled = false;
+      }
+    }
+
+    // ── Event listeners ───────────────────────────────────────────────────────
+    els.amountInput.addEventListener("input", () => {
+      amountSufficient = false;
+      window.clearTimeout(amountCheckTimer);
+      amountCheckTimer = window.setTimeout(checkAmount, 350);
+    });
+    els.amountInput.addEventListener("blur", checkAmount);
+    els.form.addEventListener("submit", submitConsume);
+
+    els.switchToManualBtn.addEventListener("click", showManualSearch);
+    els.switchManualFooterBtn.addEventListener("click", showManualSearch);
+
+    els.searchNameBtn.addEventListener("click", searchByName);
+    els.manualNameInput.addEventListener("keydown", e => { if (e.key === "Enter") searchByName(); });
+
+    els.backToSearchBtn.addEventListener("click", () => { hideAll(); els.manualSearchView.classList.remove("hidden"); });
+    els.verifyPasswordBtn.addEventListener("click", verifyPassword);
+    els.passwordInput.addEventListener("keydown", e => { if (e.key === "Enter") verifyPassword(); });
+
+    els.resetModeBtn.addEventListener("click", () => {
+      if (confirm("確定要清除這支手機的工作模式？")) {
+        localStorage.removeItem("work_mode");
+        localStorage.removeItem("work_action");
+        localStorage.removeItem("work_vendor");
+        window.location.href = "gate.html";
+      }
+    });
+
+    // ── Init ──────────────────────────────────────────────────────────────────
+    if (registrationNo && qrName) {
+      lookup();
+    } else {
+      showManualSearch();
+    }
+    lucide.createIcons();
+  </script>
+</body>
+</html>
