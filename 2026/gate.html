@@ -36,6 +36,7 @@
     const name = params.get("name") || "";
     const setRole = params.get("role") || "";
     const setVendor = params.get("vendor") || "";
+    const setVkey = params.get("vkey") || "";
     const setAction = params.get("action") || "";
 
     const els = {
@@ -82,6 +83,7 @@
       localStorage.removeItem("work_mode");
       localStorage.removeItem("work_action");
       localStorage.removeItem("work_vendor");
+      localStorage.removeItem("work_vkey");
       location.href = "gate.html";
     }
 
@@ -107,6 +109,7 @@
       if (setVendor) {
         localStorage.setItem("work_mode", "vendor");
         localStorage.setItem("work_vendor", setVendor);
+        localStorage.setItem("work_vkey", setVkey);
         localStorage.removeItem("work_action");
         setContent({
           eyebrow: "工作模式已設定",
@@ -149,7 +152,8 @@
       }
 
       if (mode === "vendor") {
-        location.href = `${CONFIG.spendPage}${commonParams}&vendor=${encodeURIComponent(vendor)}`;
+        const vkey = localStorage.getItem("work_vkey") || "";
+        location.href = `${CONFIG.spendPage}${commonParams}&vendor=${encodeURIComponent(vendor)}&vkey=${encodeURIComponent(vkey)}`;
         return;
       }
 
