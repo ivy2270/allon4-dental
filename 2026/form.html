@@ -128,6 +128,7 @@
     const registrationNo = params.get("id") || "";
     const qrName = params.get("name") || "";
     const vendor = params.get("vendor") || localStorage.getItem("work_vendor") || "";
+    const vkey = params.get("vkey") || localStorage.getItem("work_vkey") || "";
 
     let amountCheckTimer = null;
     let amountSufficient = false;
@@ -245,7 +246,7 @@
       if (!vendor) return showError("此手機尚未設定廠商模式，請先掃描廠商工作模式 QR Code。");
 
       try {
-        const result = await callApi({ action: "lookup", registrationNo, name: qrName, vendor });
+        const result = await callApi({ action: "lookup", registrationNo, name: qrName, vendor, vkey });
         showConsumeForm(result.doctor.name, result.doctor.registrationNo, result.vendor);
       } catch (error) {
         showError(error.message || "讀取失敗", true);
@@ -329,7 +330,8 @@
           action: "lookup",
           registrationNo: selectedCandidate.registrationNo,
           name: selectedCandidate.name,
-          vendor
+          vendor,
+          vkey
         });
         showConsumeForm(result.doctor.name, result.doctor.registrationNo, result.vendor);
       } catch (error) {
@@ -351,7 +353,7 @@
 
       showAmountStatus("loading", "正在檢查是否足夠...");
       try {
-        const result = await callApi({ action: "checkAmount", registrationNo: activeRegistrationNo, name: doctorName, vendor, amount });
+        const result = await callApi({ action: "checkAmount", registrationNo: activeRegistrationNo, name: doctorName, vendor, vkey, amount });
         amountSufficient = Boolean(result.sufficient);
         showAmountStatus(amountSufficient ? "ok" : "error", amountSufficient ? "牙材券可支付此筆金額。" : "牙材券餘額不足。");
       } catch (error) {
@@ -376,6 +378,7 @@
           registrationNo: activeRegistrationNo,
           name: doctorName,
           vendor,
+          vkey,
           amount,
           note: els.noteInput.value.trim()
         });
@@ -410,6 +413,7 @@
         localStorage.removeItem("work_mode");
         localStorage.removeItem("work_action");
         localStorage.removeItem("work_vendor");
+        localStorage.removeItem("work_vkey");
         window.location.href = "gate.html";
       }
     });
