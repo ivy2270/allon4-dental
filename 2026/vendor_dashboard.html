@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>廠商業績查詢</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+    body { font-family: 'Inter', 'Noto Sans TC', sans-serif; background: #eef2f7; color: #172033; }
+  </style>
+</head>
+<body>
+  <main class="mx-auto min-h-screen w-full max-w-5xl px-4 py-6">
+    <header class="mb-5 flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <p class="text-sm font-bold text-blue-700">Vendor Dashboard</p>
+        <h1 id="pageTitle" class="mt-1 text-2xl font-black text-slate-950">廠商業績查詢</h1>
+      </div>
+      <button id="refreshBtn" class="flex items-center gap-2 rounded-md bg-slate-900 px-4 py-2 text-sm font-black text-white">
+        <i data-lucide="refresh-cw" class="h-4 w-4"></i>
+        重新整理
+      </button>
+    </header>
+
+    <section id="loadingView" class="rounded-md border border-slate-200 bg-white p-8 text-center shadow-sm">
+      <div class="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+      <p class="font-bold text-slate-600">讀取業績資料中...</p>
+    </section>
+
+    <section id="errorView" class="hidden rounded-md border border-red-200 bg-red-50 p-5 text-red-700">
+      <p class="font-black">讀取失敗</p>
+      <p id="errorText" class="mt-1 text-sm"></p>
+    </section>
+
+    <section id="dashboardView" class="hidden space-y-5">
+      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+          <p class="text-xs font-black uppercase tracking-wide text-slate-400">總消費金額</p>
+          <p id="totalAmount" class="mt-2 text-3xl font-black text-slate-950"></p>
+        </div>
+        <div class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+          <p class="text-xs font-black uppercase tracking-wide text-slate-400">未結算金額</p>
+          <p id="unsettledAmount" class="mt-2 text-3xl font-black text-emerald-700"></p>
+        </div>
+        <div class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+          <p class="text-xs font-black uppercase tracking-wide text-slate-400">交易筆數</p>
+          <p id="transactionCount" class="mt-2 text-3xl font-black text-slate-950"></p>
+        </div>
+        <div class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+          <p class="text-xs font-black uppercase tracking-wide text-slate-400">醫師人數</p>
+          <p id="uniqueDoctorCount" class="mt-2 text-3xl font-black text-slate-950"></p>
+        </div>
+      </div>
+
+      <div class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 class="font-black text-slate-900">交易明細</h2>
+          <p id="settleText" class="text-sm font-bold text-slate-500"></p>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[720px] text-sm">
+            <thead class="border-b border-slate-100 bg-slate-50 text-xs font-bold text-slate-500">
+              <tr>
+                <th class="px-3 py-3 text-left">時間</th>
+                <th class="px-3 py-3 text-left">醫師</th>
+                <th class="px-3 py-3 text-left">報名序號</th>
+                <th class="px-3 py-3 text-right">金額</th>
+                <th class="px-3 py-3 text-left">狀態</th>
+                <th class="px-3 py-3 text-left">備註</th>
+              </tr>
+            </thead>
+            <tbody id="transactionsBody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+        <p id="emptyText" class="hidden py-8 text-center text-sm font-bold text-slate-400">目前沒有交易資料</p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const VOUCHER_ENDPOINT = "https://ytfpmewrlsbvwgdfzknx.supabase.co/functions/v1/voucher-consume";
+    const params = new URLSearchParams(window.location.search);
+    const vendor = params.get("vendor") || "";
+    const vkey = params.get("vkey") || "";
+
+    const els = {
+      pageTitle: document.getElementById("pageTitle"),
+      loadingView: document.getElementById("loadingView"),
+      errorView: document.getElementById("errorView"),
+      errorText: document.getElementById("errorText"),
+      dashboardView: document.getElementById("dashboardView"),
+      totalAmount: document.getElementById("totalAmount"),
+      unsettledAmount: document.getElementById("unsettledAmount"),
+      transactionCount: document.getElementById("transactionCount"),
+      uniqueDoctorCount: document.getElementById("uniqueDoctorCount"),
+      settleText: document.getElementById("settleText"),
+      transactionsBody: document.getElementById("transactionsBody"),
+      emptyText: document.getElementById("emptyText"),
+      refreshBtn: document.getElementById("refreshBtn"),
+    };
+
+    function currency(value) {
+      return "NT$ " + Number(value || 0).toLocaleString("zh-TW");
+    }
+
+    function statusLabel(status) {
+      if (status === "settled") return "已結算";
+      if (status === "cancelled") return "已取消";
+      return "未結算";
+    }
+
+    function getRegistration(tx) {
+      return Array.isArray(tx.registrations) ? tx.registrations[0] : tx.registrations;
+    }
+
+    function getDoctor(registration) {
+      if (!registration) return null;
+      return Array.isArray(registration.doctors) ? registration.doctors[0] : registration.doctors;
+    }
+
+    async function loadDashboard() {
+      if (!vendor || !vkey) {
+        showError("此 QR Code 缺少廠商名稱或安全碼。");
+        return;
+      }
+
+      els.loadingView.classList.remove("hidden");
+      els.errorView.classList.add("hidden");
+      els.dashboardView.classList.add("hidden");
+      els.refreshBtn.disabled = true;
+
+      try {
+        const response = await fetch(VOUCHER_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "vendorDashboard", vendor, vkey })
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.error || "讀取失敗");
+        renderDashboard(data);
+      } catch (error) {
+        showError(error.message || "讀取失敗");
+      } finally {
+        els.loadingView.classList.add("hidden");
+        els.refreshBtn.disabled = false;
+      }
+    }
+
+    function showError(message) {
+      els.loadingView.classList.add("hidden");
+      els.dashboardView.classList.add("hidden");
+      els.errorText.textContent = message;
+      els.errorView.classList.remove("hidden");
+    }
+
+    function renderDashboard(data) {
+      const summary = data.summary || {};
+      els.pageTitle.textContent = `${data.vendor?.name || vendor} 業績查詢`;
+      els.totalAmount.textContent = currency(summary.totalAmount);
+      els.unsettledAmount.textContent = currency(summary.unsettledAmount);
+      els.transactionCount.textContent = Number(summary.transactionCount || 0).toLocaleString("zh-TW");
+      els.uniqueDoctorCount.textContent = Number(summary.uniqueDoctorCount || 0).toLocaleString("zh-TW");
+      els.settleText.textContent = `已結算 ${currency(summary.settledAmount)}，取消 ${summary.cancelledCount || 0} 筆`;
+
+      const transactions = data.transactions || [];
+      els.emptyText.classList.toggle("hidden", transactions.length > 0);
+      els.transactionsBody.innerHTML = transactions.map(tx => {
+        const registration = getRegistration(tx);
+        const doctor = getDoctor(registration);
+        const isCancelled = tx.status === "cancelled";
+        return `
+          <tr class="${isCancelled ? "text-slate-400" : "text-slate-700"}">
+            <td class="px-3 py-3">${new Date(tx.occurred_at).toLocaleString("zh-TW")}</td>
+            <td class="px-3 py-3 font-bold">${doctor?.name || "-"}</td>
+            <td class="px-3 py-3 font-mono text-xs">${registration?.registration_no || "-"}</td>
+            <td class="px-3 py-3 text-right font-black ${isCancelled ? "" : "text-emerald-700"}">${currency(tx.amount)}</td>
+            <td class="px-3 py-3">${statusLabel(tx.status)}</td>
+            <td class="px-3 py-3">${tx.note || "-"}</td>
+          </tr>
+        `;
+      }).join("");
+
+      els.errorView.classList.add("hidden");
+      els.dashboardView.classList.remove("hidden");
+    }
+
+    els.refreshBtn.addEventListener("click", loadDashboard);
+    loadDashboard();
+    lucide.createIcons();
+  </script>
+</body>
+</html>

@@ -169,6 +169,9 @@
         return;
       }
 
+      location.href = `${CONFIG.queryPage}${commonParams}`;
+      return;
+
       setContent({
         eyebrow: "未設定工作模式",
         title: name ? `${name} 您好` : "請先設定工作模式",

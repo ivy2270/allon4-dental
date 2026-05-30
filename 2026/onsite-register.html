@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>2026 牙材展現場報名</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+    :root { color-scheme: light; }
+    body { font-family: 'Inter', 'Noto Sans TC', sans-serif; background: #fef3c7; color: #172033; }
+    .choice-card input:checked + span {
+      border-color: #d97706;
+      background: #fffbeb;
+      color: #92400e;
+    }
+    .field-error { display: none; }
+    .has-error .field-error { display: block; }
+    input, select, textarea { font-size: 16px; } /* 防止 iOS 自動縮放 */
+  </style>
+</head>
+<body>
+  <main class="mx-auto flex min-h-screen w-full max-w-lg flex-col px-4 py-5">
+    <header class="mb-5 flex items-center gap-3 border-b border-amber-200 pb-4">
+      <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-amber-100 text-amber-700">
+        <i data-lucide="map-pin" class="h-5 w-5"></i>
+      </div>
+      <div>
+        <p class="text-sm font-bold text-amber-700">2026 牙材展</p>
+        <h1 class="text-xl font-black text-slate-950">現場報名</h1>
+      </div>
+    </header>
+
+    <!-- 報名表單 -->
+    <form id="registrationForm" class="space-y-4">
+
+      <section class="rounded-md border border-amber-200 bg-white p-4">
+        <div class="mb-3 flex items-center gap-2">
+          <i data-lucide="user-round" class="h-5 w-5 text-amber-700"></i>
+          <h2 class="text-base font-black text-slate-950">基本資料</h2>
+        </div>
+        <div class="space-y-3">
+          <label class="block">
+            <span class="mb-1 block text-sm font-bold text-slate-700">姓名</span>
+            <input id="name" name="name" required autocomplete="name" class="w-full rounded-md border border-slate-300 px-3 py-3 outline-none transition focus:border-amber-500 focus:ring-4 focus:ring-amber-100" placeholder="請輸入姓名">
+          </label>
+
+          <label id="nationalIdField" class="block">
+            <span class="mb-1 block text-sm font-bold text-slate-700">身份證字號</span>
+            <input id="nationalId" name="nationalId" required maxlength="10" class="w-full rounded-md border border-slate-300 px-3 py-3 uppercase outline-none transition focus:border-amber-500 focus:ring-4 focus:ring-amber-100" placeholder="A123456789">
+            <span class="field-error mt-1 text-sm font-bold text-red-600">身份證字號需為 10 碼英數字。</span>
+            <span id="nationalIdCheck" class="mt-1 hidden text-sm font-bold"></span>
+          </label>
+
+          <div class="grid grid-cols-2 gap-3">
+            <label class="block">
+              <span class="mb-1 block text-sm font-bold text-slate-700">手機</span>
+              <input id="phone" name="phone" required inputmode="tel" autocomplete="tel" class="w-full rounded-md border border-slate-300 px-3 py-3 outline-none transition focus:border-amber-500 focus:ring-4 focus:ring-amber-100" placeholder="0912345678">
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-sm font-bold text-slate-700">Email</span>
+              <input id="email" name="email" required type="email" autocomplete="email" class="w-full rounded-md border border-slate-300 px-3 py-3 outline-none transition focus:border-amber-500 focus:ring-4 focus:ring-amber-100" placeholder="name@example.com">
+            </label>
+          </div>
+
+          <label class="block">
+            <span class="mb-1 block text-sm font-bold text-slate-700">學校</span>
+            <input id="school" name="school" required class="w-full rounded-md border border-slate-300 px-3 py-3 outline-none transition focus:border-amber-500 focus:ring-4 focus:ring-amber-100" placeholder="請填寫學校名稱">
+          </label>
+        </div>
+      </section>
+
+      <section class="rounded-md border border-amber-200 bg-white p-4">
+        <div class="mb-3 flex items-center gap-2">
+          <i data-lucide="badge-check" class="h-5 w-5 text-amber-700"></i>
+          <h2 class="text-base font-black text-slate-950">報名身份</h2>
+        </div>
+        <div id="identityOptions" class="space-y-2"></div>
+      </section>
+
+      <section class="rounded-md border border-amber-200 bg-white p-4">
+        <div class="mb-3 flex items-center gap-2">
+          <i data-lucide="clipboard-list" class="h-5 w-5 text-amber-700"></i>
+          <h2 class="text-base font-black text-slate-950">加選項目</h2>
+        </div>
+        <div class="space-y-4">
+          <label class="block">
+            <span class="mb-1 block text-sm font-bold text-slate-700">學分證明張數</span>
+            <input id="certificateCount" name="certificateCount" type="number" inputmode="numeric" min="0" max="20" value="0" class="w-full rounded-md border border-slate-300 px-3 py-3 outline-none transition focus:border-amber-500 focus:ring-4 focus:ring-amber-100">
+            <span class="mt-1 block text-sm text-slate-500">每張 100 元</span>
+          </label>
+          <fieldset>
+            <legend class="mb-2 text-sm font-bold text-slate-700">校友本人參加晚宴</legend>
+            <div class="grid grid-cols-2 gap-2">
+              <label class="choice-card cursor-pointer">
+                <input class="sr-only" type="radio" name="banquetSelf" value="yes" checked>
+                <span class="block rounded-md border border-slate-200 px-4 py-3 text-center font-bold text-slate-700">是</span>
+              </label>
+              <label class="choice-card cursor-pointer">
+                <input class="sr-only" type="radio" name="banquetSelf" value="no">
+                <span class="block rounded-md border border-slate-200 px-4 py-3 text-center font-bold text-slate-700">否</span>
+              </label>
+            </div>
+            <span class="mt-1 block text-sm text-slate-500">校友餐費免費</span>
+          </fieldset>
+          <label class="block">
+            <span class="mb-1 block text-sm font-bold text-slate-700">晚宴攜伴人數</span>
+            <input id="companionCount" name="companionCount" type="number" inputmode="numeric" min="0" max="20" value="0" class="w-full rounded-md border border-slate-300 px-3 py-3 outline-none transition focus:border-amber-500 focus:ring-4 focus:ring-amber-100">
+            <span class="mt-1 block text-sm text-slate-500">攜伴每位眷屬 300 元</span>
+          </label>
+        </div>
+      </section>
+
+      <section class="rounded-md border border-amber-200 bg-white p-4">
+        <div class="mb-3 flex items-center gap-2">
+          <i data-lucide="settings-2" class="h-5 w-5 text-amber-700"></i>
+          <h2 class="text-base font-black text-slate-950">其他需求</h2>
+        </div>
+        <div class="space-y-4">
+          <fieldset>
+            <legend class="mb-2 text-sm font-bold text-slate-700">會員大會</legend>
+            <div class="grid grid-cols-2 gap-2">
+              <label class="choice-card cursor-pointer">
+                <input class="sr-only" type="radio" name="memberMeeting" value="yes" checked>
+                <span class="block rounded-md border border-slate-200 px-4 py-3 text-center font-bold text-slate-700">是</span>
+              </label>
+              <label class="choice-card cursor-pointer">
+                <input class="sr-only" type="radio" name="memberMeeting" value="no">
+                <span class="block rounded-md border border-slate-200 px-4 py-3 text-center font-bold text-slate-700">否</span>
+              </label>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend class="mb-2 text-sm font-bold text-slate-700">飲食需求</legend>
+            <div class="grid grid-cols-3 gap-2">
+              <label class="choice-card cursor-pointer">
+                <input class="sr-only" type="radio" name="diet" value="葷" checked>
+                <span class="block rounded-md border border-slate-200 px-4 py-3 text-center font-bold text-slate-700">葷</span>
+              </label>
+              <label class="choice-card cursor-pointer">
+                <input class="sr-only" type="radio" name="diet" value="素">
+                <span class="block rounded-md border border-slate-200 px-4 py-3 text-center font-bold text-slate-700">素</span>
+              </label>
+              <label class="choice-card cursor-pointer">
+                <input class="sr-only" type="radio" name="diet" value="其他">
+                <span class="block rounded-md border border-slate-200 px-4 py-3 text-center font-bold text-slate-700">其他</span>
+              </label>
+            </div>
+            <label id="dietOtherWrap" class="mt-3 hidden">
+              <span class="mb-1 block text-sm font-bold text-slate-700">其他飲食需求</span>
+              <input id="dietOther" name="dietOther" class="w-full rounded-md border border-slate-300 px-3 py-3 outline-none transition focus:border-amber-500 focus:ring-4 focus:ring-amber-100" placeholder="請填寫飲食需求">
+            </label>
+          </fieldset>
+        </div>
+      </section>
+
+      <section class="rounded-md border border-amber-200 bg-white p-4">
+        <div class="mb-3 flex items-center gap-2">
+          <i data-lucide="message-square" class="h-5 w-5 text-amber-700"></i>
+          <h2 class="text-base font-black text-slate-950">備註</h2>
+        </div>
+        <label class="block">
+          <span class="mb-1 block text-sm font-bold text-slate-700">備註（選填）</span>
+          <textarea id="applicantNote" name="applicantNote" rows="3" maxlength="500" class="w-full rounded-md border border-slate-300 px-3 py-3 outline-none transition focus:border-amber-500 focus:ring-4 focus:ring-amber-100" placeholder="特殊需求請填於此（最多 500 字）"></textarea>
+        </label>
+      </section>
+
+      <!-- 費用小結 -->
+      <section class="rounded-md border border-amber-300 bg-amber-50 p-4">
+        <div class="mb-3 flex items-center justify-between">
+          <h2 class="text-base font-black text-amber-900">費用結算</h2>
+          <i data-lucide="calculator" class="h-5 w-5 text-amber-700"></i>
+        </div>
+        <dl class="space-y-2 text-sm">
+          <div class="flex justify-between">
+            <dt class="text-amber-800">報名費</dt>
+            <dd id="registrationFeeDisplay" class="font-black text-slate-900">NT$ 0</dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-amber-800">學分證明</dt>
+            <dd id="certificateFeeDisplay" class="font-black text-slate-900">NT$ 0</dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-amber-800">晚宴攜伴</dt>
+            <dd id="companionFeeDisplay" class="font-black text-slate-900">NT$ 0</dd>
+          </div>
+          <div class="border-t border-amber-200 pt-2">
+            <div class="flex items-end justify-between">
+              <dt class="font-black text-amber-900">總費用</dt>
+              <dd id="totalFeeDisplay" class="text-2xl font-black text-amber-700">NT$ 0</dd>
+            </div>
+          </div>
+        </dl>
+
+        <button id="submitBtn" type="submit" class="mt-4 flex w-full items-center justify-center gap-2 rounded-md bg-amber-600 px-4 py-4 text-base font-black text-white shadow-sm transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:bg-slate-400">
+          <i data-lucide="send" class="h-5 w-5"></i>
+          送出現場報名
+        </button>
+        <p id="submitStatus" class="mt-3 hidden rounded-md px-3 py-2 text-sm font-bold"></p>
+      </section>
+    </form>
+
+    <!-- 完成畫面 -->
+    <section id="successStep" class="hidden rounded-md border border-emerald-200 bg-white p-5 shadow-sm">
+      <div class="mb-4 flex items-start gap-3">
+        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-emerald-50 text-emerald-700">
+          <i data-lucide="check-circle-2" class="h-5 w-5"></i>
+        </div>
+        <div>
+          <h2 class="text-xl font-black text-slate-950">現場報名完成</h2>
+          <p id="successEmailStatus" class="mt-1 text-sm leading-6 text-slate-600">請前往秘書窗口完成繳費，工作人員將協助發放牙材券。</p>
+        </div>
+      </div>
+
+      <!-- 截圖區：姓名 + 序號 + QR Code -->
+      <div class="mt-4 grid gap-4 sm:grid-cols-[auto_1fr]">
+        <div class="flex flex-col items-center justify-center rounded-md border border-slate-200 bg-slate-50 p-4">
+          <img id="successQrImage" class="h-44 w-44 rounded-md bg-white p-2" alt="報到 QR Code">
+          <p class="mt-2 text-xs font-bold text-slate-500">截圖此頁可供報到使用</p>
+        </div>
+        <div class="flex flex-col justify-center gap-3">
+          <div class="rounded-md border border-slate-200 p-4">
+            <p class="text-sm font-bold text-slate-500">醫師姓名</p>
+            <p id="successDoctorName" class="mt-1 text-2xl font-black text-slate-950"></p>
+          </div>
+          <div class="rounded-md border border-amber-200 bg-amber-50 p-4">
+            <p class="text-sm font-bold text-slate-500">報名序號</p>
+            <p id="successRegistrationNo" class="mt-1 text-3xl font-black text-amber-700 tracking-widest"></p>
+          </div>
+        </div>
+      </div>
+
+      <a id="doctorPortalLink" href="https://app.allon4-dental.tw/2026/doctor_query.html" target="_blank" rel="noopener"
+        class="mt-4 flex w-full items-center justify-center gap-2 rounded-md bg-amber-500 px-4 py-3 font-black text-white hover:bg-amber-600 transition">
+        <i data-lucide="user-circle" class="h-5 w-5"></i>
+        登入醫師個人專區
+      </a>
+    </section>
+  </main>
+
+  <script>
+    const ONSITE_ENDPOINT = "https://ytfpmewrlsbvwgdfzknx.supabase.co/functions/v1/onsite";
+
+    const identityOptions = {
+      alumni: { title: "牙醫師", proof: "", fee: 5000 },
+      pgy:    { title: "PGY 醫師", proof: "憑醫策會受訓登入證明", fee: 2000 },
+      student:{ title: "學生", proof: "憑學生證", fee: 0 }
+    };
+
+    const state = { identity: "alumni" };
+
+    const els = {
+      form: document.getElementById("registrationForm"),
+      successStep: document.getElementById("successStep"),
+      nationalIdField: document.getElementById("nationalIdField"),
+      nationalId: document.getElementById("nationalId"),
+      nationalIdCheck: document.getElementById("nationalIdCheck"),
+      identityOptions: document.getElementById("identityOptions"),
+      certificateCount: document.getElementById("certificateCount"),
+      companionCount: document.getElementById("companionCount"),
+      dietOtherWrap: document.getElementById("dietOtherWrap"),
+      dietOther: document.getElementById("dietOther"),
+      registrationFeeDisplay: document.getElementById("registrationFeeDisplay"),
+      certificateFeeDisplay: document.getElementById("certificateFeeDisplay"),
+      companionFeeDisplay: document.getElementById("companionFeeDisplay"),
+      totalFeeDisplay: document.getElementById("totalFeeDisplay"),
+      submitBtn: document.getElementById("submitBtn"),
+      submitStatus: document.getElementById("submitStatus"),
+      successRegistrationNo: document.getElementById("successRegistrationNo"),
+      successDoctorName: document.getElementById("successDoctorName"),
+      successQrImage: document.getElementById("successQrImage"),
+      doctorPortalLink: document.getElementById("doctorPortalLink")
+    };
+
+    function currency(value) {
+      return "NT$ " + Number(value || 0).toLocaleString("zh-TW");
+    }
+
+    function renderIdentityOptions() {
+      els.identityOptions.innerHTML = Object.entries(identityOptions).map(([key, option]) => {
+        const meta = [currency(option.fee), option.proof].filter(Boolean).join(" / ");
+        return `
+          <label class="identity-option cursor-pointer">
+            <input class="sr-only" type="radio" name="identityType" value="${key}" ${state.identity === key ? "checked" : ""}>
+            <span class="flex gap-3 rounded-md border border-slate-200 p-4 transition hover:border-amber-300 ${state.identity === key ? "border-amber-400 bg-amber-50" : ""}">
+              <span class="mt-1 h-4 w-4 shrink-0 rounded-full border-2 ${state.identity === key ? "border-amber-500 bg-amber-500 shadow-[inset_0_0_0_3px_#fff]" : "border-slate-300"}"></span>
+              <span>
+                <span class="block font-black text-slate-950">${option.title}</span>
+                <span class="mt-1 block text-sm text-slate-600">${meta}</span>
+              </span>
+            </span>
+          </label>
+        `;
+      }).join("");
+
+      document.querySelectorAll("input[name='identityType']").forEach(input => {
+        input.addEventListener("change", () => {
+          state.identity = input.value;
+          renderIdentityOptions();
+          calculateTotal();
+        });
+      });
+    }
+
+    function normalizeCount(input) {
+      const value = Math.max(0, parseInt(input.value || "0", 10) || 0);
+      input.value = value;
+      return value;
+    }
+
+    function calculateTotal() {
+      const option = identityOptions[state.identity];
+      const certificateCount = normalizeCount(els.certificateCount);
+      const companionCount = normalizeCount(els.companionCount);
+      const certificateFee = certificateCount * 100;
+      const companionFee = companionCount * 300;
+      const total = option.fee + certificateFee + companionFee;
+
+      els.registrationFeeDisplay.textContent = currency(option.fee);
+      els.certificateFeeDisplay.textContent = currency(certificateFee);
+      els.companionFeeDisplay.textContent = currency(companionFee);
+      els.totalFeeDisplay.textContent = currency(total);
+
+      return { registrationFee: option.fee, certificateCount, certificateFee, companionCount, companionFee, total };
+    }
+
+    function validateNationalId() {
+      const value = els.nationalId.value.trim().toUpperCase();
+      els.nationalId.value = value;
+      const valid = /^[A-Z0-9]{10}$/.test(value);
+      els.nationalIdField.classList.toggle("has-error", !valid && value.length > 0);
+      if (!valid) els.nationalIdCheck.classList.add("hidden");
+      return valid;
+    }
+
+    function setNationalIdCheck(type, message) {
+      els.nationalIdCheck.className = "mt-1 text-sm font-bold";
+      if (type === "ok") els.nationalIdCheck.classList.add("text-emerald-700");
+      else if (type === "loading") els.nationalIdCheck.classList.add("text-slate-500");
+      else els.nationalIdCheck.classList.add("text-red-600");
+      els.nationalIdCheck.textContent = message;
+      els.nationalIdCheck.classList.remove("hidden");
+    }
+
+    let duplicateCheckTimer = null;
+    let nationalIdExists = false;
+
+    async function checkNationalIdDuplicate(isRetry = false) {
+      nationalIdExists = false;
+      if (!validateNationalId()) return;
+
+      const nationalId = els.nationalId.value.trim().toUpperCase();
+      setNationalIdCheck("loading", "正在檢查是否已報名...");
+
+      try {
+        const response = await fetch(ONSITE_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "checkNationalId", nationalId })
+        });
+        const result = await response.json();
+
+        // Supabase 冷啟動會回傳 401/5xx，靜默重試一次（最多）
+        if (!response.ok || !result.success) {
+          const isInfraError = response.status === 401 || response.status >= 500
+            || (result.error || "").toLowerCase().includes("jwt");
+          if (isInfraError && !isRetry) {
+            setNationalIdCheck("loading", "正在連線，請稍候...");
+            await new Promise(r => setTimeout(r, 2500));
+            if (els.nationalId.value.trim().toUpperCase() === nationalId) {
+              checkNationalIdDuplicate(true);
+            }
+            return;
+          }
+          throw new Error(result.error || "檢查失敗");
+        }
+
+        nationalIdExists = Boolean(result.exists);
+        if (nationalIdExists) {
+          setNationalIdCheck("error", `此身份證字號已存在資料庫：${result.name || "已報名者"}`);
+        } else {
+          setNationalIdCheck("ok", "此身份證字號尚未報名。");
+        }
+      } catch (error) {
+        setNationalIdCheck("error", error.message || "檢查失敗，仍可送出由系統再次確認。");
+      }
+    }
+
+    function getPayload() {
+      const totals = calculateTotal();
+      const formData = new FormData(els.form);
+      const diet = formData.get("diet");
+
+      return {
+        name: formData.get("name").trim(),
+        nationalId: formData.get("nationalId").trim().toUpperCase(),
+        phone: formData.get("phone").trim(),
+        email: formData.get("email").trim(),
+        school: formData.get("school").trim(),
+        identityType: state.identity,
+        identityLabel: identityOptions[state.identity].title,
+        creditCertificateCount: totals.certificateCount,
+        banquetSelf: formData.get("banquetSelf") === "yes",
+        banquetCompanionCount: totals.companionCount,
+        memberMeeting: formData.get("memberMeeting") === "yes",
+        diet,
+        dietOther: diet === "其他" ? (formData.get("dietOther") || "").trim() : "",
+        applicantNote: (formData.get("applicantNote") || "").trim(),
+        registrationFee: totals.registrationFee,
+        creditCertificateFee: totals.certificateFee,
+        banquetCompanionFee: totals.companionFee,
+        totalFee: totals.total
+      };
+    }
+
+    function showStatus(type, message) {
+      els.submitStatus.className = "mt-3 rounded-md px-3 py-2 text-sm font-bold";
+      els.submitStatus.classList.add(type === "success" ? "bg-emerald-50" : "bg-red-50");
+      els.submitStatus.classList.add(type === "success" ? "text-emerald-700" : "text-red-700");
+      els.submitStatus.textContent = message;
+      els.submitStatus.classList.remove("hidden");
+    }
+
+    document.querySelectorAll("input[name='diet']").forEach(input => {
+      input.addEventListener("change", () => {
+        const isOther = input.checked && input.value === "其他";
+        els.dietOtherWrap.classList.toggle("hidden", !isOther);
+        els.dietOther.required = isOther;
+      });
+    });
+
+    [els.certificateCount, els.companionCount].forEach(input => {
+      input.addEventListener("input", calculateTotal);
+      input.addEventListener("change", calculateTotal);
+    });
+
+    els.nationalId.addEventListener("input", () => {
+      nationalIdExists = false;
+      validateNationalId();
+      window.clearTimeout(duplicateCheckTimer);
+      duplicateCheckTimer = window.setTimeout(checkNationalIdDuplicate, 500);
+    });
+    els.nationalId.addEventListener("blur", checkNationalIdDuplicate);
+
+    els.form.addEventListener("submit", async event => {
+      event.preventDefault();
+      els.submitStatus.classList.add("hidden");
+
+      if (!validateNationalId()) {
+        showStatus("error", "請確認身份證字號為 10 碼英數字。");
+        els.nationalId.focus();
+        return;
+      }
+
+      if (nationalIdExists) {
+        showStatus("error", "此身份證字號已存在資料庫，請勿重複報名。");
+        els.nationalId.focus();
+        return;
+      }
+
+      if (!els.form.reportValidity()) return;
+
+      const payload = getPayload();
+      els.submitBtn.disabled = true;
+
+      try {
+        const response = await fetch(ONSITE_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "register", ...payload })
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) throw new Error(result.error || "報名送出失敗");
+
+        const doctorName = result.doctorName || "";
+        const qrUrl = result.qrUrl || `https://quickchart.io/qr?text=${encodeURIComponent(result.registrationNo || "")}`;
+        const portalUrl = `https://app.allon4-dental.tw/2026/doctor_query.html${doctorName ? "?name=" + encodeURIComponent(doctorName) : ""}`;
+        els.form.classList.add("hidden");
+        els.successStep.classList.remove("hidden");
+        els.successRegistrationNo.textContent = result.registrationNo || "";
+        els.successDoctorName.textContent = doctorName;
+        els.successQrImage.src = qrUrl;
+        els.doctorPortalLink.href = portalUrl;
+        const emailStatusEl = document.getElementById("successEmailStatus");
+        if (emailStatusEl) {
+          if (result.emailWarning) {
+            emailStatusEl.textContent = `報名資料已儲存，但確認 Email 暫時未寄出：${result.emailWarning}`;
+            emailStatusEl.className = "mt-1 text-sm font-bold leading-6 text-amber-700";
+          } else {
+            emailStatusEl.textContent = "報名完成！系統已寄出確認 Email（含 QR Code），請留意收件匣或垃圾郵件。請前往秘書窗口完成繳費。";
+            emailStatusEl.className = "mt-1 text-sm leading-6 text-slate-600";
+          }
+        }
+        lucide.createIcons();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } catch (error) {
+        showStatus("error", error.message || "送出失敗，請稍後再試。");
+      } finally {
+        els.submitBtn.disabled = false;
+      }
+    });
+
+    renderIdentityOptions();
+    calculateTotal();
+    lucide.createIcons();
+  </script>
+</body>
+</html>

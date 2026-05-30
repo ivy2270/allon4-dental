@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>後台管理</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+    body { font-family: 'Inter', 'Noto Sans TC', sans-serif; background: #f1f5f9; color: #172033; }
+    .tab-btn.active { background: #fff; color: #1e40af; font-weight: 900; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    .tab-btn { transition: all .15s; }
+    .badge-active { background: #ecfdf5; color: #059669; }
+    .badge-inactive { background: #f1f5f9; color: #64748b; }
+    .badge-settled { background: #eff6ff; color: #2563eb; }
+    .badge-cancelled { background: #fef2f2; color: #dc2626; }
+    .badge-normal { background: #f0fdf4; color: #16a34a; }
+  </style>
+</head>
+<body>
+
+<!-- Login screen -->
+<div id="loginScreen" class="flex min-h-screen items-center justify-center px-4">
+  <div class="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
+    <div class="mb-6 flex h-12 w-12 items-center justify-center rounded-lg bg-slate-900 text-white">
+      <i data-lucide="shield-check" class="h-6 w-6"></i>
+    </div>
+    <h1 class="text-xl font-black text-slate-950">後台管理</h1>
+    <p class="mt-1 text-sm text-slate-500">請輸入管理員密碼</p>
+    <input id="loginPasswordInput" type="password"
+      class="mt-5 w-full rounded-md border border-slate-300 px-3 py-3 font-bold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+      placeholder="管理員密碼">
+    <p id="loginError" class="mt-2 hidden text-sm font-bold text-red-600"></p>
+    <button id="loginBtn" class="mt-4 w-full rounded-md bg-slate-900 py-3 font-black text-white hover:bg-slate-800">
+      登入
+    </button>
+  </div>
+</div>
+
+<!-- Main app -->
+<div id="mainApp" class="hidden min-h-screen">
+  <!-- Top nav -->
+  <nav class="sticky top-0 z-10 border-b border-slate-200 bg-white px-4 py-3">
+    <div class="mx-auto flex max-w-6xl items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="flex h-8 w-8 items-center justify-center rounded-md bg-slate-900 text-white">
+          <i data-lucide="layout-dashboard" class="h-4 w-4"></i>
+        </div>
+        <span class="font-black text-slate-900">後台管理</span>
+      </div>
+      <button id="logoutBtn" class="flex items-center gap-1 rounded-md border border-slate-200 px-3 py-1.5 text-sm font-bold text-slate-600 hover:bg-slate-50">
+        <i data-lucide="log-out" class="h-4 w-4"></i> 登出
+      </button>
+    </div>
+  </nav>
+
+  <div class="mx-auto max-w-6xl px-4 py-6">
+    <!-- Tabs -->
+    <div class="mb-6 flex gap-1 rounded-lg bg-slate-100 p-1 w-fit">
+      <button class="tab-btn active rounded-md px-4 py-2 text-sm font-bold text-slate-600" data-tab="vendors">
+        廠商管理
+      </button>
+      <button class="tab-btn rounded-md px-4 py-2 text-sm font-bold text-slate-600" data-tab="transactions">
+        消費明細
+      </button>
+      <button class="tab-btn rounded-md px-4 py-2 text-sm font-bold text-slate-600" data-tab="settle">
+        結帳批次
+      </button>
+    </div>
+
+    <!-- ── Tab: Vendors ───────────────────────────────────────────────────── -->
+    <div id="tab-vendors" class="tab-panel space-y-4">
+      <div class="flex items-center justify-between gap-3 flex-wrap">
+        <h2 class="text-lg font-black text-slate-900">廠商列表</h2>
+        <div class="flex gap-2">
+          <button id="exportCsvBtn" class="flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-50">
+            <i data-lucide="download" class="h-4 w-4"></i> 匯出 CSV
+          </button>
+          <button id="openAddVendorBtn" class="flex items-center gap-1.5 rounded-md bg-slate-900 px-4 py-2 text-sm font-black text-white hover:bg-slate-700">
+            <i data-lucide="plus" class="h-4 w-4"></i> 新增廠商
+          </button>
+        </div>
+      </div>
+
+      <!-- Add vendor form -->
+      <div id="addVendorForm" class="hidden rounded-xl border border-blue-200 bg-blue-50 p-5 space-y-4">
+        <h3 class="font-black text-blue-900">新增廠商</h3>
+        <label class="block">
+          <span class="mb-1 block text-sm font-bold text-slate-700">廠商名稱</span>
+          <input id="newVendorName" type="text" class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 font-bold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" placeholder="例：05 鈺美德">
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-sm font-bold text-slate-700">安全碼（留空自動產生）</span>
+          <input id="newVendorKey" type="text" class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 font-mono font-bold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" placeholder="留空自動產生 6–8 碼英數">
+        </label>
+        <p id="addVendorError" class="hidden text-sm font-bold text-red-600"></p>
+        <div class="flex gap-2">
+          <button id="cancelAddVendorBtn" class="rounded-md border border-slate-300 bg-white px-4 py-2 font-bold text-slate-700">取消</button>
+          <button id="submitAddVendorBtn" class="rounded-md bg-blue-700 px-4 py-2 font-black text-white hover:bg-blue-800">新增</button>
+        </div>
+      </div>
+
+      <!-- Vendors table -->
+      <div id="vendorsTable" class="rounded-xl border border-slate-200 bg-white overflow-hidden">
+        <div id="vendorsLoadingRow" class="px-6 py-8 text-center text-slate-500">
+          <div class="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+          載入中...
+        </div>
+        <table class="hidden w-full text-sm" id="vendorsTbl">
+          <thead class="border-b border-slate-100 bg-slate-50 text-xs font-bold text-slate-500">
+            <tr>
+              <th class="px-4 py-3 text-left">廠商名稱</th>
+              <th class="px-4 py-3 text-left">狀態</th>
+              <th class="px-4 py-3 text-left">安全碼</th>
+              <th class="px-4 py-3 text-left">消費 QR Code 連結</th>
+              <th class="px-4 py-3 text-left">業績 QR</th>
+              <th class="px-4 py-3 text-right">操作</th>
+            </tr>
+          </thead>
+          <tbody id="vendorsTbody" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Tab: Transactions ──────────────────────────────────────────────── -->
+    <div id="tab-transactions" class="tab-panel hidden space-y-4">
+      <div class="flex flex-wrap items-center gap-3">
+        <h2 class="text-lg font-black text-slate-900">消費明細</h2>
+        <select id="txVendorFilter" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-bold outline-none focus:border-blue-500">
+          <option value="">所有廠商</option>
+        </select>
+        <select id="txStatusFilter" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-bold outline-none focus:border-blue-500">
+          <option value="">所有狀態</option>
+          <option value="normal">正常</option>
+          <option value="settled">已結帳</option>
+          <option value="cancelled">已取消</option>
+        </select>
+        <button id="txRefreshBtn" class="flex items-center gap-1 rounded-md border border-slate-200 px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50">
+          <i data-lucide="refresh-cw" class="h-4 w-4"></i> 重新整理
+        </button>
+      </div>
+
+      <div id="txSummaryBar" class="hidden grid grid-cols-3 gap-3">
+        <div class="rounded-lg bg-white border border-slate-200 p-4">
+          <p class="text-xs font-bold text-slate-500">筆數</p>
+          <p id="txTotalCount" class="mt-1 text-2xl font-black text-slate-900"></p>
+        </div>
+        <div class="rounded-lg bg-white border border-slate-200 p-4">
+          <p class="text-xs font-bold text-slate-500">總金額</p>
+          <p id="txTotalAmount" class="mt-1 text-2xl font-black text-emerald-700"></p>
+        </div>
+        <div class="rounded-lg bg-white border border-slate-200 p-4">
+          <p class="text-xs font-bold text-slate-500">已取消</p>
+          <p id="txCancelledCount" class="mt-1 text-2xl font-black text-slate-400"></p>
+        </div>
+      </div>
+
+      <div class="rounded-xl border border-slate-200 bg-white overflow-hidden">
+        <div id="txLoadingRow" class="px-6 py-8 text-center text-slate-500">
+          <div class="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+          載入中...
+        </div>
+        <div id="txEmptyRow" class="hidden px-6 py-8 text-center text-slate-400 font-bold">尚無消費記錄</div>
+        <div class="overflow-x-auto">
+          <table class="hidden w-full text-sm" id="txTbl">
+            <thead class="border-b border-slate-100 bg-slate-50 text-xs font-bold text-slate-500">
+              <tr>
+                <th class="px-4 py-3 text-left">時間</th>
+                <th class="px-4 py-3 text-left">醫師</th>
+                <th class="px-4 py-3 text-left">廠商</th>
+                <th class="px-4 py-3 text-right">金額</th>
+                <th class="px-4 py-3 text-left">狀態</th>
+                <th class="px-4 py-3 text-left">備註</th>
+                <th class="px-4 py-3 text-right">操作</th>
+              </tr>
+            </thead>
+            <tbody id="txTbody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Tab: Settle ────────────────────────────────────────────────────── -->
+    <div id="tab-settle" class="tab-panel hidden space-y-4">
+      <h2 class="text-lg font-black text-slate-900">結帳批次</h2>
+
+      <!-- Create settle -->
+      <div class="rounded-xl border border-slate-200 bg-white p-5 space-y-4">
+        <h3 class="font-black text-slate-900">建立新結帳批次</h3>
+        <p class="text-sm text-slate-500">選擇廠商後，將會把該廠商所有「正常、未結帳」交易打包成一個結帳批次。</p>
+        <div class="flex flex-wrap gap-3">
+          <select id="settleVendorSelect" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-bold outline-none focus:border-blue-500">
+            <option value="">選擇廠商</option>
+          </select>
+          <input id="settledByInput" type="text" placeholder="結帳人（選填）"
+            class="rounded-md border border-slate-300 px-3 py-2 text-sm font-bold outline-none focus:border-blue-500">
+          <input id="settleNoteInput" type="text" placeholder="備註（選填）"
+            class="rounded-md border border-slate-300 px-3 py-2 text-sm font-bold outline-none focus:border-blue-500">
+          <button id="createSettleBtn" class="rounded-md bg-blue-700 px-4 py-2 font-black text-white hover:bg-blue-800">建立批次</button>
+        </div>
+        <p id="settleError" class="hidden text-sm font-bold text-red-600"></p>
+        <p id="settleSuccess" class="hidden text-sm font-bold text-emerald-700"></p>
+      </div>
+
+      <!-- Batches list -->
+      <div class="rounded-xl border border-slate-200 bg-white overflow-hidden">
+        <div class="border-b border-slate-100 bg-slate-50 px-4 py-3 flex items-center justify-between">
+          <p class="text-xs font-bold text-slate-500">結帳批次紀錄</p>
+          <button id="batchRefreshBtn" class="flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-slate-700">
+            <i data-lucide="refresh-cw" class="h-3 w-3"></i> 重新整理
+          </button>
+        </div>
+        <div id="batchLoadingRow" class="px-6 py-8 text-center text-slate-500">
+          <div class="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+          載入中...
+        </div>
+        <div id="batchEmptyRow" class="hidden px-6 py-8 text-center text-slate-400 font-bold">尚無結帳批次</div>
+        <table class="hidden w-full text-sm" id="batchTbl">
+          <thead class="border-b border-slate-100 bg-slate-50 text-xs font-bold text-slate-500">
+            <tr>
+              <th class="px-4 py-3 text-left">批次編號</th>
+              <th class="px-4 py-3 text-left">廠商</th>
+              <th class="px-4 py-3 text-right">總金額</th>
+              <th class="px-4 py-3 text-right">筆數</th>
+              <th class="px-4 py-3 text-left">結帳時間</th>
+              <th class="px-4 py-3 text-left">結帳人</th>
+              <th class="px-4 py-3 text-left">備註</th>
+            </tr>
+          </thead>
+          <tbody id="batchTbody" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit vendor modal -->
+<div id="editVendorModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/40 px-4">
+  <div class="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl space-y-4">
+    <h3 class="font-black text-slate-950">編輯廠商</h3>
+    <input id="editVendorId" type="hidden">
+    <label class="block">
+      <span class="mb-1 block text-sm font-bold text-slate-700">廠商名稱</span>
+      <input id="editVendorName" type="text" class="w-full rounded-md border border-slate-300 px-3 py-2 font-bold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
+    </label>
+    <label class="block">
+      <span class="mb-1 block text-sm font-bold text-slate-700">安全碼（留空保持不變）</span>
+      <input id="editVendorKey" type="text" class="w-full rounded-md border border-slate-300 px-3 py-2 font-mono font-bold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" placeholder="留空保持現有安全碼">
+    </label>
+    <p id="editVendorError" class="hidden text-sm font-bold text-red-600"></p>
+    <div class="flex gap-2">
+      <button id="editVendorCloseBtn" class="flex-1 rounded-md border border-slate-200 py-2 font-bold text-slate-700">取消</button>
+      <button id="editVendorSaveBtn" class="flex-1 rounded-md bg-blue-700 py-2 font-black text-white hover:bg-blue-800">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Cancel transaction modal -->
+<div id="cancelModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/40 px-4">
+  <div class="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl">
+    <h3 class="font-black text-slate-950">取消交易</h3>
+    <p id="cancelModalDesc" class="mt-1 text-sm text-slate-600"></p>
+    <label class="mt-4 block">
+      <span class="mb-1 block text-sm font-bold text-slate-700">取消原因（選填）</span>
+      <input id="cancelReasonInput" type="text" class="w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
+    </label>
+    <p id="cancelModalError" class="mt-2 hidden text-sm font-bold text-red-600"></p>
+    <div class="mt-4 flex gap-2">
+      <button id="cancelModalCloseBtn" class="flex-1 rounded-md border border-slate-200 py-2 font-bold text-slate-700">取消</button>
+      <button id="cancelModalConfirmBtn" class="flex-1 rounded-md bg-red-600 py-2 font-black text-white hover:bg-red-700">確認取消</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const VOUCHER_ENDPOINT = "https://ytfpmewrlsbvwgdfzknx.supabase.co/functions/v1/voucher-consume";
+const SUPABASE_ANON_KEY = "";
+
+let adminAuthed = false;
+let vendorsCache = [];
+let cancelTargetId = null;
+
+function apiHeaders() {
+  const h = { "Content-Type": "application/json" };
+  if (SUPABASE_ANON_KEY) { h.apikey = SUPABASE_ANON_KEY; h.Authorization = `Bearer ${SUPABASE_ANON_KEY}`; }
+  return h;
+}
+
+async function callApi(payload) {
+  const res = await fetch(VOUCHER_ENDPOINT, { method: "POST", headers: apiHeaders(), body: JSON.stringify(payload) });
+  const data = await res.json();
+  if (!res.ok || !data.success) throw new Error(data.error || "操作失敗");
+  return data;
+}
+
+function currency(v) { return "NT$ " + Number(v || 0).toLocaleString("zh-TW"); }
+
+function fmtDate(iso) {
+  if (!iso) return "-";
+  const d = new Date(iso);
+  return d.toLocaleDateString("zh-TW") + " " + d.toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" });
+}
+
+function badge(text, cls) { return `<span class="rounded-full px-2 py-0.5 text-xs font-bold ${cls}">${text}</span>`; }
+
+function statusBadge(status) {
+  if (status === "normal") return badge("正常", "badge-normal");
+  if (status === "settled") return badge("已結帳", "badge-settled");
+  if (status === "cancelled") return badge("已取消", "badge-cancelled");
+  return badge(status, "badge-normal");
+}
+
+// ── Login ─────────────────────────────────────────────────────────────────────
+document.getElementById("loginBtn").addEventListener("click", doLogin);
+document.getElementById("loginPasswordInput").addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); });
+
+async function doLogin() {
+  const pw = document.getElementById("loginPasswordInput").value;
+  const errEl = document.getElementById("loginError");
+  const btn = document.getElementById("loginBtn");
+  errEl.classList.add("hidden");
+  btn.disabled = true; btn.textContent = "驗證中...";
+  try {
+    await callApi({ action: "adminAuth", password: pw });
+    adminAuthed = true;
+    document.getElementById("loginScreen").classList.add("hidden");
+    document.getElementById("mainApp").classList.remove("hidden");
+    loadVendors();
+    loadTransactions();
+    loadBatches();
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.classList.remove("hidden");
+  } finally {
+    btn.disabled = false; btn.textContent = "登入";
+  }
+}
+
+document.getElementById("logoutBtn").addEventListener("click", () => {
+  adminAuthed = false;
+  document.getElementById("mainApp").classList.add("hidden");
+  document.getElementById("loginScreen").classList.remove("hidden");
+  document.getElementById("loginPasswordInput").value = "";
+});
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+document.querySelectorAll(".tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab-panel").forEach(p => p.classList.add("hidden"));
+    btn.classList.add("active");
+    document.getElementById("tab-" + btn.dataset.tab).classList.remove("hidden");
+  });
+});
+
+// ── Vendors ───────────────────────────────────────────────────────────────────
+async function loadVendors() {
+  document.getElementById("vendorsLoadingRow").classList.remove("hidden");
+  document.getElementById("vendorsTbl").classList.add("hidden");
+  try {
+    const result = await callApi({ action: "adminVendors", sub: "list" });
+    vendorsCache = result.vendors || [];
+    renderVendorsTable(vendorsCache);
+    populateVendorSelects(vendorsCache);
+  } catch (e) {
+    document.getElementById("vendorsLoadingRow").innerHTML = `<p class="text-red-600 font-bold px-6 py-4">${e.message}</p>`;
+  }
+}
+
+function renderVendorsTable(vendors) {
+  const tbody = document.getElementById("vendorsTbody");
+  if (vendors.length === 0) {
+    document.getElementById("vendorsLoadingRow").innerHTML = '<p class="text-slate-400 font-bold px-6 py-8 text-center">尚無廠商資料</p>';
+    document.getElementById("vendorsLoadingRow").classList.remove("hidden");
+    return;
+  }
+  const dashboardUrl = (v) => {
+    const url = new URL("vendor_dashboard.html", window.location.href);
+    url.searchParams.set("vendor", v.name);
+    url.searchParams.set("vkey", v.security_key || "");
+    return url.toString();
+  };
+  const qrImageUrl = (url) => `https://quickchart.io/qr?text=${encodeURIComponent(url)}`;
+  tbody.innerHTML = vendors.map(v => `
+    <tr>
+      <td class="px-4 py-3 font-bold text-slate-900">${v.name}</td>
+      <td class="px-4 py-3">${v.active ? badge("啟用", "badge-active") : badge("停用", "badge-inactive")}</td>
+      <td class="px-4 py-3 font-mono text-sm font-bold text-slate-700">${v.security_key || "-"}</td>
+      <td class="px-4 py-3 font-mono text-xs text-blue-700 max-w-xs truncate" title="${v.qr_code_url || ''}">${v.qr_code_url || "-"}</td>
+      <td class="px-4 py-3">
+        <a href="${dashboardUrl(v)}" target="_blank" class="text-xs font-black text-blue-700 underline">業績頁</a>
+        <a href="${qrImageUrl(dashboardUrl(v))}" target="_blank" class="ml-2 text-xs font-black text-slate-600 underline">QR</a>
+      </td>
+      <td class="px-4 py-3 text-right flex justify-end gap-1.5">
+        <button onclick="openEditVendorModal('${v.id}', '${v.name.replace(/'/g, "\'")}')"
+          class="rounded-md border border-blue-200 px-3 py-1 text-xs font-bold text-blue-700 hover:bg-blue-50">
+          編輯
+        </button>
+        <button onclick="toggleVendorActive('${v.id}', ${v.active})"
+          class="rounded-md border border-slate-200 px-3 py-1 text-xs font-bold hover:bg-slate-50">
+          ${v.active ? "停用" : "啟用"}
+        </button>
+      </td>
+    </tr>
+  `).join("");
+  document.getElementById("vendorsLoadingRow").classList.add("hidden");
+  document.getElementById("vendorsTbl").classList.remove("hidden");
+}
+
+function populateVendorSelects(vendors) {
+  const activeVendors = vendors.filter(v => v.active);
+  [document.getElementById("txVendorFilter"), document.getElementById("settleVendorSelect")].forEach(sel => {
+    const firstOpt = sel.options[0];
+    sel.innerHTML = "";
+    sel.appendChild(firstOpt);
+    activeVendors.forEach(v => {
+      const opt = document.createElement("option");
+      opt.value = v.id;
+      opt.textContent = v.name;
+      sel.appendChild(opt);
+    });
+  });
+}
+
+async function toggleVendorActive(id, currentActive) {
+  try {
+    await callApi({ action: "adminVendors", sub: "update", id, active: !currentActive });
+    loadVendors();
+  } catch (e) { alert(e.message); }
+}
+window.toggleVendorActive = toggleVendorActive;
+
+// ── Edit vendor modal ─────────────────────────────────────────────────────────
+function openEditVendorModal(id, name) {
+  document.getElementById("editVendorId").value = id;
+  document.getElementById("editVendorName").value = name;
+  document.getElementById("editVendorKey").value = "";
+  document.getElementById("editVendorError").classList.add("hidden");
+  document.getElementById("editVendorModal").classList.remove("hidden");
+}
+window.openEditVendorModal = openEditVendorModal;
+
+document.getElementById("editVendorCloseBtn").addEventListener("click", () => {
+  document.getElementById("editVendorModal").classList.add("hidden");
+});
+
+document.getElementById("editVendorSaveBtn").addEventListener("click", async () => {
+  const id = document.getElementById("editVendorId").value;
+  const name = document.getElementById("editVendorName").value.trim();
+  const securityKey = document.getElementById("editVendorKey").value.trim();
+  const errEl = document.getElementById("editVendorError");
+  errEl.classList.add("hidden");
+  if (!name) { errEl.textContent = "廠商名稱為必填"; errEl.classList.remove("hidden"); return; }
+  try {
+    await callApi({ action: "adminVendors", sub: "update", id, name, ...(securityKey ? { securityKey } : {}) });
+    document.getElementById("editVendorModal").classList.add("hidden");
+    loadVendors();
+  } catch (e) { errEl.textContent = e.message; errEl.classList.remove("hidden"); }
+});
+
+// ── Add vendor form ───────────────────────────────────────────────────────────
+document.getElementById("openAddVendorBtn").addEventListener("click", () => {
+  document.getElementById("addVendorForm").classList.toggle("hidden");
+});
+document.getElementById("cancelAddVendorBtn").addEventListener("click", () => {
+  document.getElementById("addVendorForm").classList.add("hidden");
+});
+
+document.getElementById("submitAddVendorBtn").addEventListener("click", async () => {
+  const name = document.getElementById("newVendorName").value.trim();
+  const securityKey = document.getElementById("newVendorKey").value.trim(); // optional
+  const errEl = document.getElementById("addVendorError");
+  errEl.classList.add("hidden");
+  if (!name) { errEl.textContent = "廠商名稱為必填"; errEl.classList.remove("hidden"); return; }
+  try {
+    await callApi({ action: "adminVendors", sub: "create", name, ...(securityKey ? { securityKey } : {}) });
+    document.getElementById("addVendorForm").classList.add("hidden");
+    document.getElementById("newVendorName").value = "";
+    document.getElementById("newVendorKey").value = "";
+    loadVendors();
+  } catch (e) { errEl.textContent = e.message; errEl.classList.remove("hidden"); }
+});
+
+// ── Export CSV ────────────────────────────────────────────────────────────────
+document.getElementById("exportCsvBtn").addEventListener("click", async () => {
+  const btn = document.getElementById("exportCsvBtn");
+  btn.disabled = true;
+  try {
+    const result = await callApi({ action: "adminVendors", sub: "exportCsv" });
+    const vendors = result.vendors || [];
+    if (vendors.length === 0) { alert("目前沒有廠商資料可匯出"); return; }
+
+    const dashboardUrl = (v) => {
+      const url = new URL("vendor_dashboard.html", window.location.href);
+      url.searchParams.set("vendor", v.name);
+      url.searchParams.set("vkey", v.security_key || "");
+      return url.toString();
+    };
+    const headers = ["廠商名稱", "狀態", "安全碼", "消費 QR Code 連結", "業績查詢連結"];
+    const rows = vendors.map(v => [
+      v.name,
+      v.active ? "啟用" : "停用",
+      v.security_key || "",
+      v.qr_code_url || "",
+      dashboardUrl(v)
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+
+    const bom = "﻿"; // UTF-8 BOM for Excel
+    const blob = new Blob([bom + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `廠商資料_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (e) { alert(e.message); }
+  finally { btn.disabled = false; }
+});
+
+// ── Transactions ──────────────────────────────────────────────────────────────
+async function loadTransactions() {
+  document.getElementById("txLoadingRow").classList.remove("hidden");
+  document.getElementById("txTbl").classList.add("hidden");
+  document.getElementById("txEmptyRow").classList.add("hidden");
+  document.getElementById("txSummaryBar").classList.add("hidden");
+
+  const vendorId = document.getElementById("txVendorFilter").value;
+  const status = document.getElementById("txStatusFilter").value;
+
+  try {
+    const result = await callApi({ action: "adminTransactions", sub: "list", vendorId: vendorId || undefined, status: status || undefined });
+    const txs = result.transactions || [];
+    renderTransactionsTable(txs);
+  } catch (e) {
+    document.getElementById("txLoadingRow").innerHTML = `<p class="text-red-600 font-bold px-6 py-4">${e.message}</p>`;
+  }
+}
+
+function renderTransactionsTable(txs) {
+  document.getElementById("txLoadingRow").classList.add("hidden");
+
+  if (txs.length === 0) {
+    document.getElementById("txEmptyRow").classList.remove("hidden");
+    return;
+  }
+
+  // Summary
+  const normalTxs = txs.filter(t => t.status !== "cancelled");
+  const totalAmount = normalTxs.reduce((s, t) => s + Number(t.amount), 0);
+  const cancelledCount = txs.filter(t => t.status === "cancelled").length;
+  document.getElementById("txTotalCount").textContent = normalTxs.length;
+  document.getElementById("txTotalAmount").textContent = currency(totalAmount);
+  document.getElementById("txCancelledCount").textContent = cancelledCount;
+  document.getElementById("txSummaryBar").classList.remove("hidden");
+
+  const tbody = document.getElementById("txTbody");
+  tbody.innerHTML = txs.map(tx => {
+    const doctor = tx.registrations?.doctors?.name || "-";
+    const regNo = tx.registrations?.registration_no || "";
+    const vendorName = tx.vendors?.name || "-";
+    const canCancel = tx.status === "normal";
+    return `
+      <tr class="${tx.status === "cancelled" ? "opacity-50" : ""}">
+        <td class="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">${fmtDate(tx.occurred_at)}</td>
+        <td class="px-4 py-3">
+          <p class="font-bold text-slate-900">${doctor}</p>
+          <p class="font-mono text-xs text-slate-400">${regNo}</p>
+        </td>
+        <td class="px-4 py-3 font-bold text-blue-700">${vendorName}</td>
+        <td class="px-4 py-3 text-right font-black ${tx.status === "cancelled" ? "line-through text-slate-400" : "text-slate-900"}">${currency(tx.amount)}</td>
+        <td class="px-4 py-3">${statusBadge(tx.status)}</td>
+        <td class="px-4 py-3 text-xs text-slate-500 max-w-xs truncate">${tx.note || ""}</td>
+        <td class="px-4 py-3 text-right">
+          ${canCancel ? `<button onclick="openCancelModal('${tx.id}', '${doctor}', '${currency(tx.amount)}')" class="rounded-md border border-red-200 px-3 py-1 text-xs font-bold text-red-600 hover:bg-red-50">取消</button>` : ""}
+        </td>
+      </tr>
+    `;
+  }).join("");
+  document.getElementById("txTbl").classList.remove("hidden");
+}
+
+document.getElementById("txRefreshBtn").addEventListener("click", loadTransactions);
+document.getElementById("txVendorFilter").addEventListener("change", loadTransactions);
+document.getElementById("txStatusFilter").addEventListener("change", loadTransactions);
+
+// Cancel modal
+function openCancelModal(id, doctor, amount) {
+  cancelTargetId = id;
+  document.getElementById("cancelModalDesc").textContent = `醫師：${doctor}　金額：${amount}`;
+  document.getElementById("cancelReasonInput").value = "";
+  document.getElementById("cancelModalError").classList.add("hidden");
+  document.getElementById("cancelModal").classList.remove("hidden");
+}
+window.openCancelModal = openCancelModal;
+
+document.getElementById("cancelModalCloseBtn").addEventListener("click", () => {
+  document.getElementById("cancelModal").classList.add("hidden");
+  cancelTargetId = null;
+});
+
+document.getElementById("cancelModalConfirmBtn").addEventListener("click", async () => {
+  if (!cancelTargetId) return;
+  const reason = document.getElementById("cancelReasonInput").value.trim();
+  const errEl = document.getElementById("cancelModalError");
+  errEl.classList.add("hidden");
+  try {
+    await callApi({ action: "adminTransactions", sub: "cancel", id: cancelTargetId, reason });
+    document.getElementById("cancelModal").classList.add("hidden");
+    cancelTargetId = null;
+    loadTransactions();
+  } catch (e) { errEl.textContent = e.message; errEl.classList.remove("hidden"); }
+});
+
+// ── Settle ────────────────────────────────────────────────────────────────────
+async function loadBatches() {
+  document.getElementById("batchLoadingRow").classList.remove("hidden");
+  document.getElementById("batchTbl").classList.add("hidden");
+  document.getElementById("batchEmptyRow").classList.add("hidden");
+  try {
+    const result = await callApi({ action: "adminSettle", sub: "list" });
+    const batches = result.batches || [];
+    if (batches.length === 0) {
+      document.getElementById("batchLoadingRow").classList.add("hidden");
+      document.getElementById("batchEmptyRow").classList.remove("hidden");
+      return;
+    }
+    const tbody = document.getElementById("batchTbody");
+    tbody.innerHTML = batches.map(b => `
+      <tr>
+        <td class="px-4 py-3 font-mono text-xs text-slate-700">${b.batch_no}</td>
+        <td class="px-4 py-3 font-bold text-blue-700">${b.vendors?.name || "-"}</td>
+        <td class="px-4 py-3 text-right font-black text-slate-900">${currency(b.total_amount)}</td>
+        <td class="px-4 py-3 text-right text-slate-600">${b.transaction_count}</td>
+        <td class="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">${fmtDate(b.settled_at)}</td>
+        <td class="px-4 py-3 text-sm text-slate-600">${b.settled_by || "-"}</td>
+        <td class="px-4 py-3 text-xs text-slate-400">${b.note || ""}</td>
+      </tr>
+    `).join("");
+    document.getElementById("batchLoadingRow").classList.add("hidden");
+    document.getElementById("batchTbl").classList.remove("hidden");
+  } catch (e) {
+    document.getElementById("batchLoadingRow").innerHTML = `<p class="text-red-600 font-bold px-6 py-4">${e.message}</p>`;
+  }
+}
+
+document.getElementById("batchRefreshBtn").addEventListener("click", loadBatches);
+
+document.getElementById("createSettleBtn").addEventListener("click", async () => {
+  const vendorId = document.getElementById("settleVendorSelect").value;
+  const settledBy = document.getElementById("settledByInput").value.trim();
+  const note = document.getElementById("settleNoteInput").value.trim();
+  const errEl = document.getElementById("settleError");
+  const successEl = document.getElementById("settleSuccess");
+  errEl.classList.add("hidden");
+  successEl.classList.add("hidden");
+
+  if (!vendorId) { errEl.textContent = "請選擇廠商"; errEl.classList.remove("hidden"); return; }
+  if (!confirm("確定要對此廠商建立結帳批次？此操作無法還原。")) return;
+
+  try {
+    const result = await callApi({ action: "adminSettle", sub: "create", vendorId, settledBy, note });
+    const b = result.batch;
+    successEl.textContent = `結帳完成！批次 ${b.batch_no}，共 ${b.transaction_count} 筆，合計 ${currency(b.total_amount)}`;
+    successEl.classList.remove("hidden");
+    loadBatches();
+    loadTransactions();
+  } catch (e) { errEl.textContent = e.message; errEl.classList.remove("hidden"); }
+});
+
+lucide.createIcons();
+</script>
+</body>
+</html>
