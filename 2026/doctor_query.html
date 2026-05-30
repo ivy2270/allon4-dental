@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>醫師個人中心 | 2026 牙醫年會</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+        
+        body { 
+            font-family: 'Inter', 'Noto Sans TC', sans-serif; 
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); 
+            color: #334155; 
+            min-height: 100vh;
+        }
+        
+        .tab-btn { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border-bottom: 3px solid transparent; }
+        .tab-btn.active { color: #4f46e5; border-bottom-color: #4f46e5; font-weight: bold; background-color: rgba(79, 70, 229, 0.05); }
+        
+        .card-shadow { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05); }
+        
+        .password-wrapper { position: relative; width: 100%; }
+        .toggle-btn { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #94a3b8; z-index: 10; }
+
+        @media (max-width: 640px) {
+            .rwd-table thead { display: none; }
+            .rwd-table tr { display: block; background: #fff; border: 1px solid #f1f5f9; border-radius: 1.5rem; padding: 1.25rem; margin-bottom: 1rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+            .rwd-table td { display: flex; justify-content: space-between; padding: 0.6rem 0; border: none; text-align: right; font-size: 0.95rem; }
+            .rwd-table td::before { content: attr(data-label); font-weight: 600; color: #94a3b8; text-align: left; font-size: 0.85rem; }
+        }
+        
+        .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+<div class="max-w-2xl mx-auto">
+    <div class="text-center mb-10 mt-4">
+        <h1 class="text-3xl font-extrabold tracking-tight text-slate-800 text-left sm:text-center">醫師個人中心</h1>
+        <p class="text-slate-500 mt-2 text-left sm:text-center font-medium opacity-80 underline underline-offset-8 decoration-indigo-200">2026 牙醫年會數位助理</p>
+    </div>
+
+    <div id="loginCard" class="bg-white/80 backdrop-blur-md rounded-[2.5rem] card-shadow p-8 mb-8 border border-white/50 animate-fade-in">
+        <div class="space-y-6">
+            <div>
+                <label class="block text-sm font-bold text-slate-600 mb-2 ml-1">醫師姓名</label>
+                <input type="text" id="docName" class="w-full px-5 py-4 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-400 outline-none transition-all text-lg bg-white/50" placeholder="請輸入您的全名">
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-slate-600 mb-2 ml-1">驗證密碼</label>
+                <div class="password-wrapper">
+                    <input type="password" id="docPwd" class="w-full px-5 py-4 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-400 outline-none transition-all text-lg tracking-widest bg-white/50" placeholder="••••">
+                    <span class="toggle-btn" id="toggleLoginPwd">
+                        <i class="fa-regular fa-eye-slash"></i>
+                    </span>
+                </div>
+            </div>
+            <button onclick="doQuery()" id="submitBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-5 rounded-2xl shadow-lg shadow-indigo-100 transition-all transform active:scale-[0.98] text-xl mt-4">
+                進入個人中心
+            </button>
+        </div>
+    </div>
+
+    <div id="resultBox" class="hidden animate-fade-in">
+        <div class="flex items-center justify-between mb-5 px-3">
+            <div class="flex items-center space-x-3">
+                <div class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div>
+                <span id="welcome-msg" class="text-sm font-bold text-slate-500 font-mono tracking-tight">載入中...</span>
+                <span id="refresh-indicator" class="hidden text-[10px] bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full font-bold">同步中</span>
+            </div>
+            <button onclick="doLogout()" class="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors bg-white/50 px-4 py-2 rounded-xl border border-slate-100">登出</button>
+        </div>
+
+        <div class="flex space-x-1 mb-6 bg-slate-200/40 p-1.5 rounded-[2rem] border border-white/40">
+            <button onclick="switchTab('status')" id="btn-status" class="tab-btn active flex-1 py-3.5 text-center rounded-[1.5rem] transition-all text-sm font-bold">個人動態</button>
+            <button onclick="switchTab('records')" id="btn-records" class="tab-btn flex-1 py-3.5 text-center rounded-[1.5rem] transition-all text-sm font-bold">消費明細</button>
+            <button onclick="switchTab('lucky')" id="btn-lucky" class="tab-btn flex-1 py-3.5 text-center rounded-[1.5rem] transition-all text-sm font-bold">抽獎票券</button>
+            <button onclick="switchTab('registration')" id="btn-registration" class="tab-btn flex-1 py-3.5 text-center rounded-[1.5rem] transition-all text-sm font-bold">報名狀態</button>
+        </div>
+
+        <div class="bg-white/90 backdrop-blur-sm rounded-[2.5rem] card-shadow p-6 border border-white relative min-h-[500px]">
+            <div id="pane-status" class="tab-pane space-y-6">
+                <div class="bg-slate-900 text-white p-8 rounded-[2rem] shadow-xl relative overflow-hidden">
+                    <div class="relative z-10 text-center">
+                        <p class="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Available Balance</p>
+                        <h2 id="display-balance" class="text-5xl font-black text-white italic">--</h2>
+                        <p class="text-indigo-300/80 text-xs mt-2 font-bold">牙材券剩餘點數</p>
+                    </div>
+                    
+                    <div id="checkin-status" class="mt-8 pt-6 border-t border-white/10 flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-circle-notch fa-spin text-slate-500"></i>
+                        <span class="text-sm font-medium text-slate-400 tracking-wide">確認報到狀態中...</span>
+                    </div>
+                    
+                    <div class="absolute -right-8 -bottom-8 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl"></div>
+                </div>
+
+                <div id="status-details" class="divide-y divide-slate-100 px-2"></div>
+            </div>
+
+            <div id="pane-records" class="tab-pane hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full rwd-table" id="table-records-main">
+                        <thead class="text-slate-400 text-[11px] font-black uppercase tracking-[0.1em] border-b">
+                            <tr>
+                                <th class="text-left py-4 px-2">消費廠商</th>
+                                <th class="text-right py-4 px-2">金額</th>
+                                <th class="text-right py-4 px-2">交易時間</th>
+                            </tr>
+                        </thead>
+                        <tbody id="records-list" class="text-slate-700 divide-y divide-slate-50"></tbody>
+                    </table>
+                </div>
+                <div id="empty-records" class="empty-state hidden py-24 text-center">
+                    <i class="fa-solid fa-receipt text-slate-200 text-5xl mb-4 block"></i>
+                    <p class="text-slate-400 font-medium italic">尚未產生任何消費紀錄</p>
+                </div>
+            </div>
+
+            <div id="pane-lucky" class="tab-pane hidden">
+                <div id="lucky-grid" class="grid grid-cols-1 gap-4"></div>
+                <div id="empty-lucky" class="empty-state hidden py-24 text-center">
+                    <i class="fa-solid fa-ticket-simple text-slate-200 text-5xl mb-4 block"></i>
+                    <p class="text-slate-400 font-medium italic">尚未獲得抽獎票券</p>
+                </div>
+            </div>
+
+            <div id="pane-registration" class="tab-pane hidden">
+                <div id="reg-details" class="divide-y divide-slate-100 px-2"></div>
+            </div>
+        </div>
+        
+        <p class="text-center text-[10px] text-slate-400 mt-8 font-medium">© 2026 Dental Association Personal Dashboard v2.5</p>
+    </div>
+</div>
+
+<script>
+    const SUPABASE_FUNCTION_URL = 'https://ytfpmewrlsbvwgdfzknx.supabase.co/functions/v1/doctor-query';
+    let autoRefreshTimer = null;
+
+    document.getElementById('toggleLoginPwd').onclick = function() {
+        const pwdInput = document.getElementById('docPwd');
+        const icon = this.querySelector('i');
+        pwdInput.type = pwdInput.type === 'password' ? 'text' : 'password';
+        icon.className = pwdInput.type === 'password' ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye';
+    };
+
+    window.onload = () => {
+        // 從 URL 參數預填姓名（例如從現場報名成功頁帶過來）
+        const urlName = new URLSearchParams(window.location.search).get("name");
+        if (urlName) {
+            document.getElementById('docName').value = urlName;
+            document.getElementById('docPwd').focus();
+        }
+
+        const savedName = localStorage.getItem('doc_name');
+        const savedPwd = localStorage.getItem('doc_pwd');
+        if (savedName && savedPwd) {
+            document.getElementById('loginCard').classList.add('hidden');
+            document.getElementById('resultBox').classList.remove('hidden');
+            document.getElementById('welcome-msg').innerText = "SESSION RECOVERING...";
+            document.getElementById('docName').value = savedName;
+            document.getElementById('docPwd').value = savedPwd;
+            doQuery(true); 
+        }
+    };
+
+    function doLogout() {
+        if(confirm("確定要登出並清除登入紀錄嗎？")) {
+            clearTimeout(autoRefreshTimer);
+            localStorage.clear();
+            window.location.reload();
+        }
+    }
+
+    async function doQuery(isAuto = false) {
+        const name = document.getElementById('docName').value.trim();
+        const password = document.getElementById('docPwd').value.trim();
+        const btn = document.getElementById('submitBtn');
+        const indicator = document.getElementById('refresh-indicator');
+
+        if (!name || !password) return;
+
+        if(!isAuto) {
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i> VERIFYING`;
+        } else {
+            indicator.classList.remove('hidden');
+        }
+
+        try {
+            const resp = await fetch(SUPABASE_FUNCTION_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'query', name, password })
+            });
+            const data = await resp.json();
+
+            if (data.success) {
+                localStorage.setItem('doc_name', name);
+                localStorage.setItem('doc_pwd', password);
+                
+                document.getElementById('welcome-msg').innerText = `WELCOME, DR. ${data.doctor.name} (${data.registration.registration_no})`;
+                renderData(data);
+                
+                document.getElementById('loginCard').classList.add('hidden');
+                document.getElementById('resultBox').classList.remove('hidden');
+
+                clearTimeout(autoRefreshTimer);
+                autoRefreshTimer = setTimeout(() => doQuery(true), 30000);
+            } else {
+                if(isAuto) { localStorage.clear(); window.location.reload(); }
+                else alert(data.error || "登入失敗");
+            }
+        } catch (e) { console.error("Sync error", e); } 
+        finally { 
+            btn.disabled = false; btn.innerHTML = '進入個人中心';
+            indicator.classList.add('hidden');
+        }
+    }
+
+    function renderData(data) {
+        const statusDiv = document.getElementById('status-details');
+        const recordsList = document.getElementById('records-list');
+        const luckyGrid = document.getElementById('lucky-grid');
+        const checkinStatusBox = document.getElementById('checkin-status');
+        
+        statusDiv.innerHTML = ''; 
+        recordsList.innerHTML = ''; 
+        luckyGrid.innerHTML = '';
+
+        const reg = data.registration;
+        const sum = data.summary;
+        const doctor = data.doctor;
+        const regDiv = document.getElementById('reg-details');
+        regDiv.innerHTML = '';
+        
+        document.getElementById('display-balance').innerText = sum ? sum.remaining_amount.toLocaleString() : '0';
+        
+        if(sum) {
+            statusDiv.innerHTML = `
+                <div class="space-y-2 p-4">
+                    <div class="flex justify-between py-2 border-b"><span>報到領取</span><span class="font-bold">${sum.checkin_received_amount.toLocaleString()}</span></div>
+                    <div class="flex justify-between py-2 border-b"><span>牙材券加購</span><span class="font-bold">${sum.extra_amount.toLocaleString()}</span></div>
+                    <div class="flex justify-between py-2 border-b"><span>已消費牙材券</span><span class="font-bold text-red-600">${sum.spent_amount.toLocaleString()}</span></div>
+                </div>`;
+        }
+
+        const dietText = doctor.diet === '其他' ? `${doctor.diet} (${reg.diet_other || ''})` : (doctor.diet || '-');
+
+        const fields = [
+            { label: '學校', value: doctor.school },
+            { label: '報名身份', value: doctor.identity_type },
+            { label: '飲食需求', value: dietText },
+            { label: '報名序號', value: reg.registration_no },
+            { label: '報到狀態', value: reg.status === 'checked_in' ? '已報到' : '未報到' },
+            { label: '款項確認', value: reg.fee_status === 'confirmed' ? '已確認' : '確認中' },
+            { label: '牙材券預計發放金額', value: reg.issued_amount },
+            { label: '祕書對帳註記', value: reg.secretary_note },
+            { label: '學分證書張數', value: reg.credit_certificate_count },
+            { label: '晚宴攜伴人數', value: reg.banquet_companion_count },
+            { label: '會員大會', value: reg.member_meeting ? '是' : '否' },
+            { label: '報名費', value: reg.registration_fee },
+            { label: '學分證書金額', value: reg.credit_certificate_fee },
+            { label: '晚宴攜伴金額', value: reg.banquet_companion_fee },
+            { label: '總金額', value: reg.total_fee },
+            { label: '匯款姓名或帳號後五碼', value: reg.remittance_note },
+            { label: '校友本人是否參加晚宴', value: reg.banquet_self ? '是' : '否' },
+            { label: '備註', value: reg.applicant_note }
+        ];
+        
+        fields.forEach(f => {
+            regDiv.innerHTML += `
+                <div class="flex justify-between py-3 border-b">
+                    <span class="text-slate-500 text-xs font-bold">${f.label}</span>
+                    <span class="font-medium text-slate-800 text-sm">${f.value || '-'}</span>
+                </div>`;
+        });
+        
+        if(sum && sum.checked_in) {
+            checkinStatusBox.innerHTML = `<div class="bg-green-500/20 text-green-500 px-4 py-2 rounded-full text-xs font-bold">已完成報到</div>`;
+        } else {
+            checkinStatusBox.innerHTML = `<div class="bg-red-500/10 text-red-500 px-4 py-2 rounded-2xl text-xs font-bold animate-pulse">未報到</div>`;
+        }
+
+        if (data.transactions && data.transactions.length > 0) {
+            const spendTransactions = data.transactions.filter(t => t.transaction_type === 'spend');
+            if (spendTransactions.length > 0) {
+                spendTransactions.forEach(t => {
+                    recordsList.innerHTML += `
+                        <tr>
+                            <td class="py-5 px-2 font-bold text-left">${t.vendors?.name || '未知廠商'}</td>
+                            <td class="py-5 px-2 text-right text-red-600">-$${t.amount.toLocaleString()}</td>
+                            <td class="py-5 px-2 text-right text-[10px] text-slate-400">${new Date(t.occurred_at).toLocaleString()}</td>
+                        </tr>`;
+                });
+            } else {
+                document.getElementById('empty-records').classList.remove('hidden');
+            }
+        } else {
+            document.getElementById('empty-records').classList.remove('hidden');
+        }
+
+        if (data.tickets && data.tickets.length > 0) {
+            data.tickets.forEach(t => {
+                luckyGrid.innerHTML += `
+                    <div class="p-6 rounded-3xl border border-indigo-100 bg-indigo-50/50 text-center">
+                        <div class="text-xs text-indigo-400 uppercase font-bold">抽獎券號碼</div>
+                        <div class="text-3xl font-black text-indigo-900">${t.ticket_no}</div>
+                    </div>`;
+            });
+        } else {
+            document.getElementById('empty-lucky').classList.remove('hidden');
+        }
+    }
+
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('pane-' + tabId).classList.remove('hidden');
+        document.getElementById('btn-' + tabId).classList.add('active');
+    }
+</script>
+
+</body>
+</html>
