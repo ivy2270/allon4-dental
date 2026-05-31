@@ -74,9 +74,9 @@
           <input id="passwordInput" type="password" class="w-full rounded-md border border-slate-300 px-3 py-3 font-bold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" placeholder="身份證後四碼">
         </label>
         <div id="passwordError" class="hidden rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm font-bold text-red-700"></div>
-        <div class="flex gap-2">
-          <button id="backToSearchBtn" class="flex-1 rounded-md border border-slate-200 px-4 py-3 font-black text-slate-700">返回</button>
-          <button id="verifyPasswordBtn" class="flex-1 rounded-md bg-blue-700 px-4 py-3 font-black text-white">確認身份</button>
+        <div class="flex flex-col gap-2 sm:flex-row">
+          <button id="backToSearchBtn" class="w-full rounded-md border border-slate-200 px-4 py-3 font-black text-slate-700 sm:flex-1">返回</button>
+          <button id="verifyPasswordBtn" class="w-full rounded-md bg-blue-700 px-4 py-3 font-black text-white sm:flex-1">確認身份</button>
         </div>
       </div>
 
@@ -99,6 +99,7 @@
             class="w-full rounded-md border border-slate-300 px-3 py-3 text-xl font-black tracking-widest outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" placeholder="後四碼">
           <span class="mt-1 block text-sm text-slate-500">QR Code 與手動搜尋都需在這裡驗證一次。</span>
         </label>
+        <p id="passwordStatus" class="hidden rounded-md px-3 py-2 text-sm font-bold"></p>
 
         <label class="block">
           <span class="mb-1 block text-sm font-bold text-slate-700">消費金額</span>
@@ -139,6 +140,8 @@
 
     let amountCheckTimer = null;
     let amountSufficient = false;
+    let passwordVerified = false;
+    let passwordCheckTimer = null;
     let doctorName = qrName;
     let activeRegistrationNo = registrationNo; // may be overridden by manual flow
 
@@ -170,6 +173,7 @@
       consumePasswordInput: document.getElementById("consumePasswordInput"),
       amountInput: document.getElementById("amountInput"),
       amountStatus: document.getElementById("amountStatus"),
+      passwordStatus: document.getElementById("passwordStatus"),
       noteInput: document.getElementById("noteInput"),
       submitBtn: document.getElementById("submitBtn"),
       resetModeBtn: document.getElementById("resetModeBtn"),
@@ -217,6 +221,15 @@
       els.amountStatus.classList.remove("hidden");
     }
 
+    function showPasswordStatus(type, message) {
+      els.passwordStatus.className = "rounded-md px-3 py-2 text-sm font-bold";
+      if (type === "ok") els.passwordStatus.classList.add("bg-emerald-50", "text-emerald-700");
+      else if (type === "loading") els.passwordStatus.classList.add("bg-slate-50", "text-slate-600");
+      else els.passwordStatus.classList.add("bg-red-50", "text-red-700");
+      els.passwordStatus.textContent = message;
+      els.passwordStatus.classList.remove("hidden");
+    }
+
     function showError(message, showManualButton = false) {
       hideAll();
       els.errorView.classList.remove("hidden");
@@ -247,7 +260,9 @@
       els.amountInput.value = "";
       els.noteInput.value = "";
       els.amountStatus.classList.add("hidden");
+      els.passwordStatus.classList.add("hidden");
       amountSufficient = false;
+      passwordVerified = false;
       els.form.classList.remove("hidden");
       els.consumePasswordInput.focus();
       lucide.createIcons();
@@ -368,13 +383,34 @@
       }
     }
 
+    async function checkPassword() {
+      const password = els.consumePasswordInput.value.trim();
+      passwordVerified = false;
+      if (password.length < 4) {
+        els.passwordStatus.classList.add("hidden");
+        return;
+      }
+      showPasswordStatus("loading", "驗證密碼中...");
+      try {
+        await callApi({ action: "verifyPassword", registrationNo: activeRegistrationNo, password });
+        passwordVerified = true;
+        showPasswordStatus("ok", "✓ 身份驗證通過");
+        // Re-trigger amount check now that password is confirmed
+        if (getAmount()) checkAmount();
+      } catch (error) {
+        passwordVerified = false;
+        showPasswordStatus("error", error.message || "密碼驗證失敗");
+        amountSufficient = false;
+        els.amountStatus.classList.add("hidden");
+      }
+    }
+
     async function checkAmount() {
       amountSufficient = false;
       const amount = getAmount();
       if (!amount) { els.amountStatus.classList.add("hidden"); return; }
-      const password = els.consumePasswordInput.value.trim();
-      if (password.length < 4) {
-        showAmountStatus("error", "請先輸入醫師身份證後四碼。");
+      if (!passwordVerified) {
+        showAmountStatus("error", "請先完成身份驗證（輸入身份證後四碼）。");
         return;
       }
       if (amount <= 0 || amount % 1000 !== 0) {
@@ -427,8 +463,16 @@
       amountCheckTimer = window.setTimeout(checkAmount, 350);
     });
     els.consumePasswordInput.addEventListener("input", () => {
+      passwordVerified = false;
       amountSufficient = false;
       els.amountStatus.classList.add("hidden");
+      window.clearTimeout(passwordCheckTimer);
+      const val = els.consumePasswordInput.value.trim();
+      if (val.length === 4) {
+        passwordCheckTimer = window.setTimeout(checkPassword, 300);
+      } else {
+        els.passwordStatus.classList.add("hidden");
+      }
     });
     els.amountInput.addEventListener("blur", checkAmount);
     els.form.addEventListener("submit", submitConsume);
