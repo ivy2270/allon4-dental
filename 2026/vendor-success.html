@@ -39,6 +39,10 @@
         <i data-lucide="scan-line" class="h-5 w-5"></i>
         繼續掃描下一位
       </a>
+      <a id="manualLink" href="form.html" class="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 py-3 font-black text-slate-700">
+        <i data-lucide="keyboard" class="h-5 w-5"></i>
+        手動輸入醫師
+      </a>
     </section>
   </main>
 
@@ -48,6 +52,14 @@
     document.getElementById("nameText").textContent = params.get("name") || "-";
     document.getElementById("amountText").textContent = "NT$ " + amount.toLocaleString("zh-TW");
     document.getElementById("vendorText").textContent = params.get("vendor") || "-";
+
+    // Build manual link preserving vendor credentials
+    const manualParams = new URLSearchParams();
+    if (params.get("vendor")) manualParams.set("vendor", params.get("vendor"));
+    if (params.get("vkey")) manualParams.set("vkey", params.get("vkey"));
+    const manualHref = "form.html" + (manualParams.toString() ? "?" + manualParams.toString() : "");
+    document.getElementById("manualLink").href = manualHref;
+
     lucide.createIcons();
   </script>
 </body>
