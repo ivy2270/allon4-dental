@@ -94,6 +94,13 @@
         </div>
 
         <label class="block">
+          <span class="mb-1 block text-sm font-bold text-slate-700">醫師身份驗證（身份證後四碼）</span>
+          <input id="consumePasswordInput" type="password" inputmode="numeric" maxlength="4" autocomplete="one-time-code"
+            class="w-full rounded-md border border-slate-300 px-3 py-3 text-xl font-black tracking-widest outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" placeholder="後四碼">
+          <span class="mt-1 block text-sm text-slate-500">QR Code 與手動搜尋都需在這裡驗證一次。</span>
+        </label>
+
+        <label class="block">
           <span class="mb-1 block text-sm font-bold text-slate-700">消費金額</span>
           <input id="amountInput" type="number" min="1000" step="1000" required
             class="w-full rounded-md border border-slate-300 px-3 py-4 text-2xl font-black outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" placeholder="1000">
@@ -160,6 +167,7 @@
       doctorNameText: document.getElementById("doctorNameText"),
       registrationNoText: document.getElementById("registrationNoText"),
       vendorText: document.getElementById("vendorText"),
+      consumePasswordInput: document.getElementById("consumePasswordInput"),
       amountInput: document.getElementById("amountInput"),
       amountStatus: document.getElementById("amountStatus"),
       noteInput: document.getElementById("noteInput"),
@@ -235,7 +243,13 @@
       els.doctorNameText.textContent = name;
       els.registrationNoText.textContent = regNo;
       els.vendorText.textContent = vendorName;
+      els.consumePasswordInput.value = "";
+      els.amountInput.value = "";
+      els.noteInput.value = "";
+      els.amountStatus.classList.add("hidden");
+      amountSufficient = false;
       els.form.classList.remove("hidden");
+      els.consumePasswordInput.focus();
       lucide.createIcons();
     }
 
@@ -266,7 +280,7 @@
         const candidates = result.candidates || [];
 
         if (candidates.length === 1) {
-          // Only one match — go straight to password
+          // Only one match — go straight to the main form. Password is verified there.
           selectCandidate(candidates[0]);
           return;
         }
@@ -296,15 +310,26 @@
       }
     }
 
-    function selectCandidate(candidate) {
+    async function selectCandidate(candidate) {
       selectedCandidate = candidate;
+      if (!vendor) {
+        showError("此手機尚未設定廠商模式，請先掃描廠商工作模式 QR Code。", false);
+        return;
+      }
       hideAll();
-      els.selectedNameText.textContent = candidate.name;
-      els.selectedRegNoText.textContent = candidate.registrationNo;
-      els.manualPasswordView.classList.remove("hidden");
-      els.passwordInput.value = "";
-      els.passwordError.classList.add("hidden");
-      els.passwordInput.focus();
+      els.loadingView.classList.remove("hidden");
+      try {
+        const result = await callApi({
+          action: "lookup",
+          registrationNo: candidate.registrationNo,
+          name: candidate.name,
+          vendor,
+          vkey
+        });
+        showConsumeForm(result.doctor.name, result.doctor.registrationNo, result.vendor);
+      } catch (error) {
+        showError(error.message || "讀取失敗", true);
+      }
     }
 
     async function verifyPassword() {
@@ -347,13 +372,18 @@
       amountSufficient = false;
       const amount = getAmount();
       if (!amount) { els.amountStatus.classList.add("hidden"); return; }
+      const password = els.consumePasswordInput.value.trim();
+      if (password.length < 4) {
+        showAmountStatus("error", "請先輸入醫師身份證後四碼。");
+        return;
+      }
       if (amount <= 0 || amount % 1000 !== 0) {
         showAmountStatus("error", "金額需為 1000 的倍數。"); return;
       }
 
       showAmountStatus("loading", "正在檢查是否足夠...");
       try {
-        const result = await callApi({ action: "checkAmount", registrationNo: activeRegistrationNo, name: doctorName, vendor, vkey, amount });
+        const result = await callApi({ action: "checkAmount", registrationNo: activeRegistrationNo, name: doctorName, vendor, vkey, amount, password });
         amountSufficient = Boolean(result.sufficient);
         showAmountStatus(amountSufficient ? "ok" : "error", amountSufficient ? "牙材券可支付此筆金額。" : "牙材券餘額不足。");
       } catch (error) {
@@ -380,6 +410,7 @@
           vendor,
           vkey,
           amount,
+          password: els.consumePasswordInput.value.trim(),
           note: els.noteInput.value.trim()
         });
         window.location.href = `vendor-success.html?name=${encodeURIComponent(result.doctorName || doctorName)}&amount=${encodeURIComponent(result.amount)}&vendor=${encodeURIComponent(result.vendor)}`;
@@ -394,6 +425,10 @@
       amountSufficient = false;
       window.clearTimeout(amountCheckTimer);
       amountCheckTimer = window.setTimeout(checkAmount, 350);
+    });
+    els.consumePasswordInput.addEventListener("input", () => {
+      amountSufficient = false;
+      els.amountStatus.classList.add("hidden");
     });
     els.amountInput.addEventListener("blur", checkAmount);
     els.form.addEventListener("submit", submitConsume);
