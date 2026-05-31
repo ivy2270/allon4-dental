@@ -139,9 +139,8 @@
     const vkey = params.get("vkey") || localStorage.getItem("work_vkey") || "";
 
     let amountCheckTimer = null;
-    let amountSufficient = false;
-    let passwordVerified = false;
     let passwordCheckTimer = null;
+    let amountSufficient = false;
     let doctorName = qrName;
     let activeRegistrationNo = registrationNo; // may be overridden by manual flow
 
@@ -221,15 +220,6 @@
       els.amountStatus.classList.remove("hidden");
     }
 
-    function showPasswordStatus(type, message) {
-      els.passwordStatus.className = "rounded-md px-3 py-2 text-sm font-bold";
-      if (type === "ok") els.passwordStatus.classList.add("bg-emerald-50", "text-emerald-700");
-      else if (type === "loading") els.passwordStatus.classList.add("bg-slate-50", "text-slate-600");
-      else els.passwordStatus.classList.add("bg-red-50", "text-red-700");
-      els.passwordStatus.textContent = message;
-      els.passwordStatus.classList.remove("hidden");
-    }
-
     function showError(message, showManualButton = false) {
       hideAll();
       els.errorView.classList.remove("hidden");
@@ -262,7 +252,6 @@
       els.amountStatus.classList.add("hidden");
       els.passwordStatus.classList.add("hidden");
       amountSufficient = false;
-      passwordVerified = false;
       els.form.classList.remove("hidden");
       els.consumePasswordInput.focus();
       lucide.createIcons();
@@ -383,25 +372,24 @@
       }
     }
 
+    function showPasswordStatus(type, message) {
+      els.passwordStatus.className = "rounded-md px-3 py-2 text-sm font-bold";
+      if (type === "ok") els.passwordStatus.classList.add("bg-emerald-50", "text-emerald-700");
+      else if (type === "loading") els.passwordStatus.classList.add("bg-slate-50", "text-slate-600");
+      else els.passwordStatus.classList.add("bg-red-50", "text-red-700");
+      els.passwordStatus.textContent = message;
+      els.passwordStatus.classList.remove("hidden");
+    }
+
     async function checkPassword() {
       const password = els.consumePasswordInput.value.trim();
-      passwordVerified = false;
-      if (password.length < 4) {
-        els.passwordStatus.classList.add("hidden");
-        return;
-      }
-      showPasswordStatus("loading", "驗證密碼中...");
+      if (password.length < 4) { els.passwordStatus.classList.add("hidden"); return; }
+      showPasswordStatus("loading", "驗證中...");
       try {
         await callApi({ action: "verifyPassword", registrationNo: activeRegistrationNo, password });
-        passwordVerified = true;
         showPasswordStatus("ok", "✓ 身份驗證通過");
-        // Re-trigger amount check now that password is confirmed
-        if (getAmount()) checkAmount();
       } catch (error) {
-        passwordVerified = false;
         showPasswordStatus("error", error.message || "密碼驗證失敗");
-        amountSufficient = false;
-        els.amountStatus.classList.add("hidden");
       }
     }
 
@@ -409,8 +397,9 @@
       amountSufficient = false;
       const amount = getAmount();
       if (!amount) { els.amountStatus.classList.add("hidden"); return; }
-      if (!passwordVerified) {
-        showAmountStatus("error", "請先完成身份驗證（輸入身份證後四碼）。");
+      const password = els.consumePasswordInput.value.trim();
+      if (password.length < 4) {
+        showAmountStatus("error", "請先輸入醫師身份證後四碼。");
         return;
       }
       if (amount <= 0 || amount % 1000 !== 0) {
@@ -463,15 +452,12 @@
       amountCheckTimer = window.setTimeout(checkAmount, 350);
     });
     els.consumePasswordInput.addEventListener("input", () => {
-      passwordVerified = false;
       amountSufficient = false;
       els.amountStatus.classList.add("hidden");
+      els.passwordStatus.classList.add("hidden");
       window.clearTimeout(passwordCheckTimer);
-      const val = els.consumePasswordInput.value.trim();
-      if (val.length === 4) {
+      if (els.consumePasswordInput.value.trim().length === 4) {
         passwordCheckTimer = window.setTimeout(checkPassword, 300);
-      } else {
-        els.passwordStatus.classList.add("hidden");
       }
     });
     els.amountInput.addEventListener("blur", checkAmount);
