@@ -198,7 +198,12 @@
             message: "請掃描參加者名牌 QR Code。<br>若要切換工作身份，請先清除工作模式或掃描新的工作模式 QR Code。",
             icon: "smartphone",
             tone: "blue",
-            actions: `<button onclick="clearRole()" class="rounded-md border border-slate-200 px-4 py-3 font-black text-slate-700">清除工作模式</button>`
+            actions: localStorage.getItem("work_mode") === "checkin"
+              ? `<a href="${CONFIG.checkinPage}?action=${encodeURIComponent(localStorage.getItem('work_action') || 'checkin')}" class="flex items-center justify-center gap-2 rounded-md bg-blue-700 px-4 py-3 font-black text-white">
+                  <i data-lucide="search" class="h-4 w-4"></i>手動查詢報名
+                </a>
+                <button onclick="clearRole()" class="rounded-md border border-slate-200 px-4 py-3 font-black text-slate-700">清除工作模式</button>`
+              : `<button onclick="clearRole()" class="rounded-md border border-slate-200 px-4 py-3 font-black text-slate-700">清除工作模式</button>`
           });
         } else {
           setContent({
