@@ -34,6 +34,24 @@
         <p id="errorText" class="mt-1 text-sm leading-6"></p>
       </div>
 
+      <!-- 手動查詢區塊 -->
+      <div id="manualSearchView" class="hidden mt-4 space-y-3">
+        <div class="rounded-md border border-slate-200 bg-slate-50 p-4">
+          <p class="mb-3 text-sm font-bold text-slate-600">手動查詢報名資料</p>
+          <div class="flex gap-2">
+            <input id="manualNameInput" type="text" placeholder="輸入醫師姓名"
+              class="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm font-bold focus:border-blue-500 focus:outline-none" />
+            <button id="manualSearchBtn"
+              class="flex items-center gap-1 rounded-md bg-slate-700 px-4 py-2 text-sm font-black text-white hover:bg-slate-800 disabled:bg-slate-400">
+              <i data-lucide="search" class="h-4 w-4"></i>
+              查詢
+            </button>
+          </div>
+        </div>
+        <div id="manualSearchError" class="hidden rounded-md border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700"></div>
+        <div id="manualResultsList" class="hidden space-y-2"></div>
+      </div>
+
       <div id="contentView" class="hidden space-y-4">
         <div id="warningBox" class="hidden rounded-md border border-amber-200 bg-amber-50 p-3 text-sm font-bold leading-6 text-amber-800"></div>
 
@@ -90,6 +108,10 @@
     const registrationNo = params.get("id") || "";
     const qrName = params.get("name") || "";
     const checkinAction = params.get("action") || "checkin";
+
+    // 手動報到時暫存選定的 registration_no 與 name
+    let manualRegistrationNo = "";
+    let manualName = "";
     let currentRegistration = null;
 
     const els = {
@@ -97,6 +119,11 @@
       loadingView: document.getElementById("loadingView"),
       errorView: document.getElementById("errorView"),
       errorText: document.getElementById("errorText"),
+      manualSearchView: document.getElementById("manualSearchView"),
+      manualNameInput: document.getElementById("manualNameInput"),
+      manualSearchBtn: document.getElementById("manualSearchBtn"),
+      manualSearchError: document.getElementById("manualSearchError"),
+      manualResultsList: document.getElementById("manualResultsList"),
       contentView: document.getElementById("contentView"),
       warningBox: document.getElementById("warningBox"),
       doctorName: document.getElementById("doctorName"),
@@ -143,6 +170,18 @@
       return "text-red-700";
     }
 
+    function sourceLabel(source) {
+      return source === "on_site" ? "現場報名" : "預先報名";
+    }
+
+    // 決定報到時實際使用的 registrationNo / name（QR 或手動選取）
+    function activeRegistrationNo() {
+      return manualRegistrationNo || registrationNo;
+    }
+    function activeName() {
+      return manualRegistrationNo ? manualName : qrName;
+    }
+
     function render(registration) {
       currentRegistration = registration;
       const doctor = registration.doctors || {};
@@ -157,8 +196,8 @@
       els.warningBox.classList.toggle("hidden", warnings.length === 0);
       els.warningBox.innerHTML = warnings.map(item => `<p>${item}</p>`).join("");
 
-      els.doctorName.textContent = doctor.name || qrName || "-";
-      els.registrationNo.textContent = registration.registration_no || registrationNo;
+      els.doctorName.textContent = doctor.name || activeName() || "-";
+      els.registrationNo.textContent = registration.registration_no || activeRegistrationNo();
       els.branchSchool.textContent = registration.branch_school || "-";
       els.schoolName.textContent = doctor.school || "-";
       els.identityType.textContent = doctor.identity_type || "-";
@@ -180,7 +219,6 @@
         showError("QR Code 缺少報名序號。");
         return;
       }
-
       try {
         const result = await callApi({
           action: "lookup",
@@ -200,6 +238,86 @@
       els.contentView.classList.add("hidden");
       els.errorView.classList.remove("hidden");
       els.errorText.textContent = message;
+      // 顯示手動查詢區塊
+      els.manualSearchView.classList.remove("hidden");
+    }
+
+    // ── 手動查詢 ──────────────────────────────────────────
+    function renderManualResults(results) {
+      els.manualResultsList.innerHTML = "";
+      if (results.length === 0) {
+        els.manualResultsList.innerHTML = `<p class="text-sm font-bold text-slate-500 text-center py-3">查無符合的報名資料</p>`;
+        els.manualResultsList.classList.remove("hidden");
+        return;
+      }
+      results.forEach(r => {
+        const card = document.createElement("button");
+        card.className = "w-full text-left rounded-md border border-slate-200 bg-white p-3 shadow-sm hover:border-blue-400 hover:bg-blue-50 transition-colors";
+        const checkedInBadge = r.checked_in
+          ? `<span class="ml-2 rounded px-1.5 py-0.5 text-xs font-black bg-emerald-100 text-emerald-700">已報到</span>`
+          : `<span class="ml-2 rounded px-1.5 py-0.5 text-xs font-black bg-slate-100 text-slate-500">未報到</span>`;
+        const sourceBadge = r.source === "on_site"
+          ? `<span class="ml-1 rounded px-1.5 py-0.5 text-xs font-black bg-amber-100 text-amber-700">現場報名</span>`
+          : "";
+        card.innerHTML = `
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-base font-black text-slate-900">${r.name}</span>
+            <div class="flex items-center">${checkedInBadge}${sourceBadge}</div>
+          </div>
+          <div class="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-slate-500 font-bold">
+            <span>序號：${r.registration_no}</span>
+            <span>學校：${r.school || "-"}</span>
+            <span>分流：${r.branch_school || "-"}</span>
+          </div>
+          <div class="mt-1 text-xs font-bold">
+            <span class="${r.payment_status === 'matched' ? 'text-emerald-700' : r.payment_status === 'pending' ? 'text-amber-700' : 'text-red-700'}">${r.payment_label}</span>
+            <span class="ml-2 text-slate-400">${r.status_label}</span>
+          </div>
+        `;
+        card.addEventListener("click", () => selectManualResult(r));
+        els.manualResultsList.appendChild(card);
+      });
+      els.manualResultsList.classList.remove("hidden");
+    }
+
+    async function doManualSearch() {
+      const name = els.manualNameInput.value.trim();
+      if (!name) return;
+      els.manualSearchBtn.disabled = true;
+      els.manualSearchError.classList.add("hidden");
+      els.manualResultsList.classList.add("hidden");
+      try {
+        const result = await callApi({ action: "lookupByName", name });
+        renderManualResults(result.results || []);
+      } catch (error) {
+        els.manualSearchError.textContent = error.message || "查詢失敗";
+        els.manualSearchError.classList.remove("hidden");
+      } finally {
+        els.manualSearchBtn.disabled = false;
+      }
+    }
+
+    async function selectManualResult(r) {
+      manualRegistrationNo = r.registration_no;
+      manualName = r.name;
+      // 隱藏手動查詢區塊，顯示 loading，再 lookup
+      els.manualSearchView.classList.add("hidden");
+      els.errorView.classList.add("hidden");
+      els.loadingView.classList.remove("hidden");
+      try {
+        const result = await callApi({
+          action: "lookup",
+          registrationNo: manualRegistrationNo,
+          name: manualName
+        });
+        els.loadingView.classList.add("hidden");
+        els.contentView.classList.remove("hidden");
+        render(result.registration);
+      } catch (error) {
+        manualRegistrationNo = "";
+        manualName = "";
+        showError(error.message || "讀取失敗");
+      }
     }
 
     async function confirmCheckin() {
@@ -211,8 +329,8 @@
       try {
         const result = await callApi({
           action: "confirm",
-          registrationNo,
-          name: qrName,
+          registrationNo: activeRegistrationNo(),
+          name: activeName(),
           checkinAction
         });
         render(result.registration);
@@ -224,6 +342,8 @@
 
     els.modeLabel.textContent = checkinAction === "checkout" ? "報到櫃台｜取消報到" : "報到櫃台";
     els.confirmBtn.addEventListener("click", confirmCheckin);
+    els.manualSearchBtn.addEventListener("click", doManualSearch);
+    els.manualNameInput.addEventListener("keydown", e => { if (e.key === "Enter") doManualSearch(); });
     els.resetModeBtn.addEventListener("click", () => {
       if (confirm("確定要清除這支手機的工作模式？")) {
         localStorage.removeItem("work_mode");
