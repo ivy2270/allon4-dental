@@ -203,6 +203,11 @@
                   <i data-lucide="search" class="h-4 w-4"></i>手動查詢報名
                 </a>
                 <button onclick="clearRole()" class="rounded-md border border-slate-200 px-4 py-3 font-black text-slate-700">清除工作模式</button>`
+              : localStorage.getItem("work_mode") === "vendor"
+              ? `<a href="${CONFIG.spendPage}?vendor=${encodeURIComponent(localStorage.getItem('work_vendor') || '')}&vkey=${encodeURIComponent(localStorage.getItem('work_vkey') || '')}" class="flex items-center justify-center gap-2 rounded-md bg-blue-700 px-4 py-3 font-black text-white">
+                  <i data-lucide="search" class="h-4 w-4"></i>手動查詢消費
+                </a>
+                <button onclick="clearRole()" class="rounded-md border border-slate-200 px-4 py-3 font-black text-slate-700">清除工作模式</button>`
               : `<button onclick="clearRole()" class="rounded-md border border-slate-200 px-4 py-3 font-black text-slate-700">清除工作模式</button>`
           });
         } else {
