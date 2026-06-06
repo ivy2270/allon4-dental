@@ -92,6 +92,17 @@
           <i data-lucide="check" class="h-5 w-5"></i>
           確認報到
         </button>
+
+        <div id="nextActionBtns" class="hidden grid grid-cols-2 gap-3 pt-1">
+          <button id="backToScanBtn" class="flex items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-3 text-sm font-black text-slate-700 shadow-sm hover:bg-slate-50">
+            <i data-lucide="scan-line" class="h-4 w-4"></i>
+            繼續掃 QR Code
+          </button>
+          <button id="goManualBtn" class="flex items-center justify-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-black text-blue-700 shadow-sm hover:bg-blue-100">
+            <i data-lucide="search" class="h-4 w-4"></i>
+            手動查詢
+          </button>
+        </div>
       </div>
     </section>
 
@@ -135,6 +146,9 @@
       voucherAmount: document.getElementById("voucherAmount"),
       checkinStatus: document.getElementById("checkinStatus"),
       confirmBtn: document.getElementById("confirmBtn"),
+      nextActionBtns: document.getElementById("nextActionBtns"),
+      backToScanBtn: document.getElementById("backToScanBtn"),
+      goManualBtn: document.getElementById("goManualBtn"),
       resetModeBtn: document.getElementById("resetModeBtn")
     };
 
@@ -211,6 +225,11 @@
       els.confirmBtn.innerHTML = checkinAction === "checkout"
         ? '<i data-lucide="undo-2" class="h-5 w-5"></i> 取消報到狀態'
         : '<i data-lucide="check" class="h-5 w-5"></i> 確認報到';
+
+      // 報到完成後才顯示下一位按鈕
+      const justCheckedIn = checkinAction === "checkin" && voucherAccount.checked_in;
+      els.nextActionBtns.classList.toggle("hidden", !justCheckedIn);
+
       lucide.createIcons();
     }
 
@@ -342,6 +361,21 @@
 
     els.modeLabel.textContent = checkinAction === "checkout" ? "報到櫃台｜取消報到" : "報到櫃台";
     els.confirmBtn.addEventListener("click", confirmCheckin);
+    els.backToScanBtn.addEventListener("click", () => history.back());
+    els.goManualBtn.addEventListener("click", () => {
+      // 重置狀態，回到手動查詢
+      manualRegistrationNo = "";
+      manualName = "";
+      currentRegistration = null;
+      els.contentView.classList.add("hidden");
+      els.nextActionBtns.classList.add("hidden");
+      els.errorView.classList.add("hidden");
+      els.manualResultsList.classList.add("hidden");
+      els.manualSearchError.classList.add("hidden");
+      els.manualNameInput.value = "";
+      els.manualSearchView.classList.remove("hidden");
+      els.manualNameInput.focus();
+    });
     els.manualSearchBtn.addEventListener("click", doManualSearch);
     els.manualNameInput.addEventListener("keydown", e => { if (e.key === "Enter") doManualSearch(); });
     els.resetModeBtn.addEventListener("click", () => {
