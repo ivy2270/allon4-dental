@@ -76,7 +76,7 @@
 
         <div class="flex space-x-1 mb-6 bg-slate-200/40 p-1.5 rounded-[2rem] border border-white/40">
             <button onclick="switchTab('status')" id="btn-status" class="tab-btn active flex-1 py-3.5 text-center rounded-[1.5rem] transition-all text-sm font-bold">個人動態</button>
-            <button onclick="switchTab('records')" id="btn-records" class="tab-btn flex-1 py-3.5 text-center rounded-[1.5rem] transition-all text-sm font-bold">消費明細</button>
+            <button onclick="switchTab('records')" id="btn-records" class="tab-btn flex-1 py-3.5 text-center rounded-[1.5rem] transition-all text-sm font-bold">牙材券明細</button>
             <button onclick="switchTab('lucky')" id="btn-lucky" class="tab-btn flex-1 py-3.5 text-center rounded-[1.5rem] transition-all text-sm font-bold">抽獎票券</button>
             <button onclick="switchTab('registration')" id="btn-registration" class="tab-btn flex-1 py-3.5 text-center rounded-[1.5rem] transition-all text-sm font-bold">報名狀態</button>
         </div>
@@ -108,11 +108,16 @@
             </div>
 
             <div id="pane-records" class="tab-pane hidden">
+                <div class="mb-4 grid grid-cols-3 gap-2 rounded-2xl bg-slate-100 p-1 text-xs font-black">
+                    <button type="button" id="record-filter-all" onclick="switchRecordFilter('all')" class="record-filter rounded-xl bg-white py-2 text-indigo-700 shadow-sm">全部</button>
+                    <button type="button" id="record-filter-income" onclick="switchRecordFilter('income')" class="record-filter rounded-xl py-2 text-slate-500">獲得</button>
+                    <button type="button" id="record-filter-spend" onclick="switchRecordFilter('spend')" class="record-filter rounded-xl py-2 text-slate-500">消費</button>
+                </div>
                 <div class="overflow-x-auto">
                     <table class="w-full rwd-table" id="table-records-main">
                         <thead class="text-slate-400 text-[11px] font-black uppercase tracking-[0.1em] border-b">
                             <tr>
-                                <th class="text-left py-4 px-2">消費廠商</th>
+                                <th class="text-left py-4 px-2">來源</th>
                                 <th class="text-right py-4 px-2">金額</th>
                                 <th class="text-right py-4 px-2">交易時間</th>
                             </tr>
@@ -122,15 +127,22 @@
                 </div>
                 <div id="empty-records" class="empty-state hidden py-24 text-center">
                     <i class="fa-solid fa-receipt text-slate-200 text-5xl mb-4 block"></i>
-                    <p class="text-slate-400 font-medium italic">尚未產生任何消費紀錄</p>
+                    <p class="text-slate-400 font-medium italic">尚未產生任何牙材券紀錄</p>
                 </div>
             </div>
 
-            <div id="pane-lucky" class="tab-pane hidden">
-                <div id="lucky-grid" class="grid grid-cols-1 gap-4"></div>
-                <div id="empty-lucky" class="empty-state hidden py-24 text-center">
-                    <i class="fa-solid fa-ticket-simple text-slate-200 text-5xl mb-4 block"></i>
-                    <p class="text-slate-400 font-medium italic">尚未獲得抽獎票券</p>
+            <div id="pane-lucky" class="tab-pane hidden space-y-6">
+                <div>
+                    <p class="text-xs font-black uppercase tracking-widest text-indigo-400 mb-3">有效抽獎券</p>
+                    <div id="lucky-grid" class="grid grid-cols-1 gap-4"></div>
+                    <div id="empty-lucky" class="hidden py-12 text-center">
+                        <i class="fa-solid fa-ticket-simple text-slate-200 text-5xl mb-4 block"></i>
+                        <p class="text-slate-400 font-medium italic">尚未獲得有效抽獎票券</p>
+                    </div>
+                </div>
+                <div id="voided-lucky-section" class="hidden">
+                    <p class="text-xs font-black uppercase tracking-widest text-slate-400 mb-3">已作廢票券</p>
+                    <div id="voided-lucky-grid" class="grid grid-cols-1 gap-3"></div>
                 </div>
             </div>
 
@@ -146,6 +158,8 @@
 <script>
     const SUPABASE_FUNCTION_URL = 'https://ytfpmewrlsbvwgdfzknx.supabase.co/functions/v1/doctor-query';
     let autoRefreshTimer = null;
+    let currentVoucherRecords = [];
+    let currentRecordFilter = 'all';
 
     document.getElementById('toggleLoginPwd').onclick = function() {
         const pwdInput = document.getElementById('docPwd');
@@ -232,11 +246,15 @@
         const statusDiv = document.getElementById('status-details');
         const recordsList = document.getElementById('records-list');
         const luckyGrid = document.getElementById('lucky-grid');
+        const voidedLuckyGrid = document.getElementById('voided-lucky-grid');
         const checkinStatusBox = document.getElementById('checkin-status');
         
         statusDiv.innerHTML = ''; 
         recordsList.innerHTML = ''; 
         luckyGrid.innerHTML = '';
+        voidedLuckyGrid.innerHTML = '';
+        document.getElementById('empty-lucky').classList.add('hidden');
+        document.getElementById('voided-lucky-section').classList.add('hidden');
 
         const reg = data.registration;
         const sum = data.summary;
@@ -258,10 +276,24 @@
         document.getElementById('display-balance').innerText = sum ? sum.remaining_amount.toLocaleString() : '0';
         
         if(sum) {
+            const prizeAmount = (data.transactions || [])
+                .filter(t => t.transaction_type === 'prize' && t.status !== 'cancelled')
+                .reduce((total, t) => total + Number(t.amount || 0), 0);
+            const prizeNotice = prizeAmount > 0 ? `
+                <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
+                    <div class="flex items-start gap-3">
+                        <i class="fa-solid fa-award mt-1 text-amber-500"></i>
+                        <div>
+                            <p class="text-sm font-black">恭喜獲得抽獎牙材券 NT$ ${prizeAmount.toLocaleString()}</p>
+                            <p class="mt-1 text-xs font-bold text-amber-700">已加入您的牙材券餘額，可於牙材券明細查看來源。</p>
+                        </div>
+                    </div>
+                </div>` : '';
             statusDiv.innerHTML = `
+                ${prizeNotice}
                 <div class="space-y-2 p-4">
                     <div class="flex justify-between py-2 border-b"><span>報到領取</span><span class="font-bold">${sum.checkin_received_amount.toLocaleString()}</span></div>
-                    <div class="flex justify-between py-2 border-b"><span>牙材券加購</span><span class="font-bold">${sum.extra_amount.toLocaleString()}</span></div>
+                    <div class="flex justify-between py-2 border-b"><span>額外獲得 / 調整</span><span class="font-bold">${sum.extra_amount.toLocaleString()}</span></div>
                     <div class="flex justify-between py-2 border-b"><span>已消費牙材券</span><span class="font-bold text-red-600">${sum.spent_amount.toLocaleString()}</span></div>
                 </div>`;
         }
@@ -303,26 +335,15 @@
             checkinStatusBox.innerHTML = `<div class="bg-red-500/10 text-red-500 px-4 py-2 rounded-2xl text-xs font-bold animate-pulse">未報到</div>`;
         }
 
-        if (data.transactions && data.transactions.length > 0) {
-            const spendTransactions = data.transactions.filter(t => t.transaction_type === 'spend');
-            if (spendTransactions.length > 0) {
-                spendTransactions.forEach(t => {
-                    recordsList.innerHTML += `
-                        <tr>
-                            <td class="py-5 px-2 font-bold text-left">${t.vendors?.name || '未知廠商'}</td>
-                            <td class="py-5 px-2 text-right text-red-600">-$${t.amount.toLocaleString()}</td>
-                            <td class="py-5 px-2 text-right text-[10px] text-slate-400">${new Date(t.occurred_at).toLocaleString()}</td>
-                        </tr>`;
-                });
-            } else {
-                document.getElementById('empty-records').classList.remove('hidden');
-            }
-        } else {
-            document.getElementById('empty-records').classList.remove('hidden');
-        }
+        currentVoucherRecords = buildVoucherRecords(data);
+        renderVoucherRecords();
 
-        if (data.tickets && data.tickets.length > 0) {
-            data.tickets.forEach(t => {
+        // 抽獎票券（分 active / voided）
+        const activeTickets = (data.tickets || []).filter(t => t.status !== 'voided');
+        const voidedTickets = (data.tickets || []).filter(t => t.status === 'voided');
+
+        if (activeTickets.length > 0) {
+            activeTickets.forEach(t => {
                 luckyGrid.innerHTML += `
                     <div class="p-6 rounded-3xl border border-indigo-100 bg-indigo-50/50 text-center">
                         <div class="text-xs text-indigo-400 uppercase font-bold">抽獎券號碼</div>
@@ -332,6 +353,114 @@
         } else {
             document.getElementById('empty-lucky').classList.remove('hidden');
         }
+
+        if (voidedTickets.length > 0) {
+            document.getElementById('voided-lucky-section').classList.remove('hidden');
+            voidedTickets.forEach(t => {
+                voidedLuckyGrid.innerHTML += `
+                    <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50 text-center opacity-50">
+                        <div class="text-xs text-slate-400 uppercase font-bold">已作廢</div>
+                        <div class="text-2xl font-black text-slate-400 line-through">${t.ticket_no}</div>
+                    </div>`;
+            });
+        }
+    }
+
+    function buildVoucherRecords(data) {
+        const records = [];
+        const sum = data.summary || {};
+        const reg = data.registration || {};
+
+        if (sum.checked_in && Number(sum.checkin_received_amount || 0) > 0) {
+            records.push({
+                source: '報到領取',
+                amount: Number(sum.checkin_received_amount || 0),
+                occurred_at: reg.updated_at || reg.registration_time,
+                direction: 'income',
+                status: 'normal'
+            });
+        }
+
+        (data.transactions || []).forEach(t => {
+            const amount = Number(t.amount || 0);
+            const isCancelled = t.status === 'cancelled';
+            let source = '牙材券調整';
+            let direction = 'income';
+
+            if (t.transaction_type === 'spend') {
+                source = t.vendors?.name || '未知廠商';
+                direction = 'spend';
+            } else if (t.transaction_type === 'add_on') {
+                source = '現場加購';
+            } else if (t.transaction_type === 'prize') {
+                source = '抽獎中獎';
+            } else if (t.transaction_type === 'adjustment') {
+                source = '人工調整';
+            }
+
+            records.push({
+                source,
+                amount,
+                occurred_at: t.occurred_at,
+                direction,
+                status: t.status || 'normal',
+                note: t.note || ''
+            });
+        });
+
+        return records.sort((a, b) => new Date(b.occurred_at || 0) - new Date(a.occurred_at || 0));
+    }
+
+    function renderVoucherRecords() {
+        const recordsList = document.getElementById('records-list');
+        const emptyRecords = document.getElementById('empty-records');
+        recordsList.innerHTML = '';
+        emptyRecords.classList.add('hidden');
+
+        const filtered = currentVoucherRecords.filter(r => currentRecordFilter === 'all' || r.direction === currentRecordFilter);
+        if (filtered.length === 0) {
+            emptyRecords.classList.remove('hidden');
+            return;
+        }
+
+        filtered.forEach(r => {
+            const isCancelled = r.status === 'cancelled';
+            const isSpend = r.direction === 'spend';
+            const amountClass = isCancelled ? 'text-slate-400 line-through' : (isSpend ? 'text-red-600' : 'text-emerald-600');
+            const amountPrefix = isSpend ? '-' : '+';
+            const cancelledBadge = isCancelled ? `<span class="ml-1.5 rounded-full bg-slate-200 px-1.5 py-0.5 text-[9px] font-black text-slate-500">已取消</span>` : '';
+            const note = r.note ? `<div class="mt-0.5 text-[10px] font-medium text-slate-400">${escapeHtml(r.note)}</div>` : '';
+            recordsList.innerHTML += `
+                <tr class="${isCancelled ? 'bg-slate-50 opacity-60' : ''}">
+                    <td class="py-5 px-2 font-bold text-left ${isCancelled ? 'text-slate-400' : ''}">${escapeHtml(r.source)}${cancelledBadge}${note}</td>
+                    <td class="py-5 px-2 text-right ${amountClass}">${amountPrefix}$${r.amount.toLocaleString()}</td>
+                    <td class="py-5 px-2 text-right text-[10px] text-slate-400">${r.occurred_at ? new Date(r.occurred_at).toLocaleString() : '-'}</td>
+                </tr>`;
+        });
+    }
+
+    function escapeHtml(value) {
+        return String(value || '').replace(/[&<>"']/g, ch => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[ch]));
+    }
+
+    function switchRecordFilter(filter) {
+        currentRecordFilter = filter;
+        document.querySelectorAll('.record-filter').forEach(btn => {
+            btn.classList.remove('bg-white', 'text-indigo-700', 'shadow-sm');
+            btn.classList.add('text-slate-500');
+        });
+        const active = document.getElementById('record-filter-' + filter);
+        if (active) {
+            active.classList.add('bg-white', 'text-indigo-700', 'shadow-sm');
+            active.classList.remove('text-slate-500');
+        }
+        renderVoucherRecords();
     }
 
     function switchTab(tabId) {

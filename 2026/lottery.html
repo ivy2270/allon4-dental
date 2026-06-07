@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>抽獎系統</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f0f13;
+            --surface: #18181f;
+            --surface2: #22222c;
+            --border: #2e2e3a;
+            --gold: #f5c542;
+            --gold-dim: #a88520;
+            --accent: #e05c5c;
+            --text: #f0f0f5;
+            --text-muted: #888899;
+            --green: #4caf82;
+            --radius: 16px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Noto Sans TC', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 24px 16px 60px;
+        }
+
+        /* ── Header ── */
+        header {
+            width: 100%;
+            max-width: 640px;
+            text-align: center;
+            margin-bottom: 32px;
+            padding-top: 16px;
+        }
+        header .eyebrow {
+            font-size: 11px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--gold);
+            font-family: 'DM Mono', monospace;
+            margin-bottom: 8px;
+        }
+        header h1 {
+            font-size: 32px;
+            font-weight: 900;
+            line-height: 1.1;
+            background: linear-gradient(135deg, #f5c542 0%, #fff8dc 50%, #f5c542 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* ── Card ── */
+        .card {
+            width: 100%;
+            max-width: 640px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 16px;
+        }
+        .card-title {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            font-family: 'DM Mono', monospace;
+            margin-bottom: 16px;
+        }
+
+        /* ── Auth ── */
+        #auth-section input {
+            width: 100%;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 16px;
+            color: var(--text);
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        #auth-section input:focus { border-color: var(--gold); }
+        #auth-error { color: var(--accent); font-size: 13px; margin-top: 8px; display: none; }
+
+        /* ── Buttons ── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            border: none;
+            border-radius: 10px;
+            font-family: 'Noto Sans TC', sans-serif;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-size: 15px;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        .btn-primary {
+            background: var(--gold);
+            color: #1a1408;
+            padding: 13px 24px;
+            width: 100%;
+            margin-top: 14px;
+            font-size: 16px;
+            font-weight: 900;
+        }
+        .btn-primary:hover:not(:disabled) { background: #ffd35a; }
+
+        .btn-draw {
+            background: linear-gradient(135deg, #f5c542, #e8a020);
+            color: #1a1408;
+            padding: 20px 32px;
+            width: 100%;
+            font-size: 20px;
+            font-weight: 900;
+            border-radius: 14px;
+            letter-spacing: 0.04em;
+            box-shadow: 0 4px 24px rgba(245, 197, 66, 0.25);
+        }
+        .btn-draw:hover:not(:disabled) { box-shadow: 0 6px 32px rgba(245, 197, 66, 0.45); }
+
+        .btn-ghost {
+            background: var(--surface2);
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            font-size: 13px;
+        }
+        .btn-ghost:hover { border-color: var(--gold-dim); color: var(--text); }
+
+        /* ── Draw Count Control ── */
+        .count-control {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 20px;
+            margin-bottom: 20px;
+        }
+        .count-control label {
+            flex: 1;
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+        .count-control .count-val {
+            font-family: 'DM Mono', monospace;
+            font-size: 28px;
+            font-weight: 500;
+            color: var(--gold);
+            min-width: 48px;
+            text-align: center;
+        }
+        .count-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: var(--border);
+            border: none;
+            color: var(--text);
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s;
+            flex-shrink: 0;
+        }
+        .count-btn:hover { background: var(--gold-dim); color: #1a1408; }
+
+        /* ── Lottery Animation Stage ── */
+        #draw-stage {
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        .rolling-numbers {
+            font-family: 'DM Mono', monospace;
+            font-size: 48px;
+            font-weight: 500;
+            color: var(--gold);
+            letter-spacing: 0.15em;
+            text-align: center;
+            opacity: 0;
+        }
+        .rolling-numbers.visible { opacity: 1; }
+
+        @keyframes rollDigit {
+            0%   { transform: translateY(-20px); opacity: 0; }
+            30%  { opacity: 1; }
+            70%  { opacity: 1; }
+            100% { transform: translateY(0px); opacity: 1; }
+        }
+        @keyframes pulse-gold {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(245, 197, 66, 0); }
+            50% { box-shadow: 0 0 0 8px rgba(245, 197, 66, 0.15); }
+        }
+
+        /* ── Winner Cards ── */
+        .winners-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .winner-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 18px;
+            animation: slideIn 0.35s ease-out both;
+        }
+        .winner-item.new-win {
+            border-color: var(--gold-dim);
+            animation: slideIn 0.35s ease-out both, pulse-gold 1.5s ease-in-out 0.35s 2;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .winner-ticket {
+            font-family: 'DM Mono', monospace;
+            font-size: 20px;
+            font-weight: 500;
+            color: var(--gold);
+            min-width: 54px;
+            background: rgba(245, 197, 66, 0.08);
+            border-radius: 8px;
+            padding: 6px 10px;
+            text-align: center;
+            border: 1px solid rgba(245, 197, 66, 0.2);
+        }
+        .winner-info { flex: 1; }
+        .winner-name {
+            font-weight: 700;
+            font-size: 16px;
+            color: var(--text);
+        }
+        .winner-school {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+        .winner-badge {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: rgba(76, 175, 130, 0.12);
+            color: var(--green);
+            border: 1px solid rgba(76, 175, 130, 0.25);
+            white-space: nowrap;
+        }
+        .winner-badge.second {
+            background: rgba(245, 197, 66, 0.12);
+            color: var(--gold);
+            border-color: rgba(245, 197, 66, 0.25);
+        }
+
+        /* ── Tabs ── */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            background: var(--surface2);
+            border-radius: 10px;
+            padding: 4px;
+            margin-bottom: 16px;
+        }
+        .tab {
+            flex: 1;
+            padding: 9px;
+            border-radius: 7px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            transition: all 0.15s;
+        }
+        .tab.active {
+            background: var(--surface);
+            color: var(--gold);
+            border: 1px solid var(--border);
+        }
+
+        /* ── Stats ── */
+        .stats-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .stat-box {
+            flex: 1;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px;
+            text-align: center;
+        }
+        .stat-num {
+            font-family: 'DM Mono', monospace;
+            font-size: 26px;
+            font-weight: 500;
+            color: var(--gold);
+            line-height: 1;
+        }
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* ── Empty State ── */
+        .empty {
+            text-align: center;
+            padding: 32px 0;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        /* ── Divider ── */
+        .section-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 12px 0 10px;
+            font-size: 11px;
+            color: var(--text-muted);
+            font-family: 'DM Mono', monospace;
+            letter-spacing: 0.1em;
+        }
+        .section-label::before, .section-label::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .hidden { display: none !important; }
+        #main-app { display: none; width: 100%; max-width: 640px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="eyebrow">牙材券系統</div>
+    <h1>抽獎管理台</h1>
+</header>
+
+<!-- Auth -->
+<div class="card" id="auth-section" style="max-width:640px;width:100%;">
+    <div class="card-title">工作人員驗證</div>
+    <input type="password" id="auth-password" placeholder="請輸入工作人員密碼" autocomplete="current-password">
+    <p id="auth-error"></p>
+    <button class="btn btn-primary" id="auth-btn">進入抽獎系統</button>
+</div>
+
+<!-- Main App -->
+<div id="main-app">
+
+    <!-- Stats -->
+    <div class="stats-row">
+        <div class="stat-box">
+            <div class="stat-num" id="stat-total">—</div>
+            <div class="stat-label">總抽獎券數</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-num" id="stat-remaining">—</div>
+            <div class="stat-label">尚未中獎</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-num" id="stat-won">—</div>
+            <div class="stat-label">已中獎次數</div>
+        </div>
+    </div>
+
+    <!-- Draw Control -->
+    <div class="card">
+        <div class="card-title">抽獎設定</div>
+
+        <div class="count-control">
+            <label>本次抽出名額</label>
+            <button class="count-btn" id="dec-btn">−</button>
+            <div class="count-val" id="draw-count">1</div>
+            <button class="count-btn" id="inc-btn">+</button>
+        </div>
+
+        <!-- Animation Stage -->
+        <div id="draw-stage">
+            <div class="rolling-numbers" id="rolling-display">？？？？</div>
+        </div>
+
+        <button class="btn btn-draw" id="draw-btn">🎰 開始抽獎</button>
+    </div>
+
+    <!-- Results -->
+    <div class="card">
+        <div class="tabs">
+            <button class="tab active" id="tab-latest" onclick="switchTab('latest')">本次結果</button>
+            <button class="tab" id="tab-all" onclick="switchTab('all')">全部中獎名單</button>
+        </div>
+
+        <div id="panel-latest">
+            <div class="empty" id="latest-empty">尚未進行抽獎</div>
+            <div class="winners-grid" id="latest-list"></div>
+        </div>
+
+        <div id="panel-all" class="hidden">
+            <div class="empty" id="all-empty">尚無中獎記錄</div>
+            <div class="winners-grid" id="all-list"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+const FUNCTION_URL = "https://ytfpmewrlsbvwgdfzknx.supabase.co/functions/v1/add-on";
+let password = localStorage.getItem("addon_password") || "";
+let drawCount = 1;
+let allWinners = []; // { ticket_no, name, school, win_count (after this draw) }
+
+// ─── Auth ───────────────────────────────────────────────
+async function callAPI(payload) {
+    const res = await fetch(FUNCTION_URL, {
+        method: "POST",
+        body: JSON.stringify({ ...payload, password })
+    });
+    const data = await res.json();
+    if (data.status !== "success") throw new Error(data.message || "操作失敗");
+    return data;
+}
+
+async function verifyAndEnter(pw) {
+    password = pw;
+    await callAPI({ action: "auth" });
+    localStorage.setItem("addon_password", pw);
+    showApp();
+}
+
+document.getElementById("auth-btn").onclick = async function () {
+    const pw = document.getElementById("auth-password").value.trim();
+    const errEl = document.getElementById("auth-error");
+    errEl.style.display = "none";
+    if (!pw) { errEl.textContent = "請輸入密碼"; errEl.style.display = "block"; return; }
+    this.disabled = true; this.textContent = "驗證中...";
+    try {
+        await verifyAndEnter(pw);
+    } catch (e) {
+        errEl.textContent = e.message || "密碼錯誤";
+        errEl.style.display = "block";
+    } finally {
+        this.disabled = false; this.textContent = "進入抽獎系統";
+    }
+};
+
+if (password) {
+    verifyAndEnter(password).catch(() => {
+        localStorage.removeItem("addon_password");
+        password = "";
+    });
+}
+
+// ─── App Init ───────────────────────────────────────────
+async function showApp() {
+    document.getElementById("auth-section").classList.add("hidden");
+    document.getElementById("main-app").style.display = "flex";
+    document.getElementById("main-app").style.flexDirection = "column";
+    await refreshStats();
+    await loadAllWinners();
+}
+
+async function refreshStats() {
+    try {
+        const data = await callAPI({ action: "lottery_stats" });
+        document.getElementById("stat-total").textContent = data.total;
+        document.getElementById("stat-remaining").textContent = data.remaining;
+        document.getElementById("stat-won").textContent = data.won;
+    } catch (e) { /* silent */ }
+}
+
+async function loadAllWinners() {
+    try {
+        const data = await callAPI({ action: "lottery_list" });
+        allWinners = data.winners || [];
+        renderAllList();
+    } catch (e) { /* silent */ }
+}
+
+// ─── Draw Count ─────────────────────────────────────────
+document.getElementById("inc-btn").onclick = () => {
+    drawCount = Math.min(drawCount + 1, 20);
+    document.getElementById("draw-count").textContent = drawCount;
+};
+document.getElementById("dec-btn").onclick = () => {
+    drawCount = Math.max(drawCount - 1, 1);
+    document.getElementById("draw-count").textContent = drawCount;
+};
+
+// ─── Draw ────────────────────────────────────────────────
+document.getElementById("draw-btn").onclick = async function () {
+    this.disabled = true;
+    this.textContent = "抽獎中...";
+    const rolling = document.getElementById("rolling-display");
+    rolling.classList.add("visible");
+
+    // Rolling animation
+    let frame = 0;
+    const rollInterval = setInterval(() => {
+        rolling.textContent = Array.from({ length: 4 }, () =>
+            String(Math.floor(Math.random() * 10))).join("");
+        frame++;
+    }, 80);
+
+    try {
+        const data = await callAPI({ action: "lottery_draw", count: drawCount });
+        clearInterval(rollInterval);
+
+        const winners = data.winners || [];
+
+        if (winners.length === 0) {
+            rolling.textContent = "—";
+            alert("目前沒有可抽的抽獎券（所有醫師均已達中獎上限）");
+        } else {
+            // Show last winner's ticket in stage
+            const last = winners[winners.length - 1];
+            rolling.textContent = last.ticket_no;
+            // Refresh lists
+            await refreshStats();
+            await loadAllWinners();
+            renderLatestList(winners);
+            switchTab("latest");
+        }
+    } catch (e) {
+        clearInterval(rollInterval);
+        rolling.textContent = "！！！！";
+        alert(e.message || "抽獎失敗");
+    } finally {
+        this.disabled = false;
+        this.textContent = "🎰 開始抽獎";
+    }
+};
+
+// ─── Render ──────────────────────────────────────────────
+function winnerHTML(w, isNew = false) {
+    const badge = w.win_count >= 2
+        ? `<span class="winner-badge second">第 2 次中獎</span>`
+        : `<span class="winner-badge">第 1 次中獎</span>`;
+    return `
+        <div class="winner-item ${isNew ? 'new-win' : ''}">
+            <div class="winner-ticket">${w.ticket_no}</div>
+            <div class="winner-info">
+                <div class="winner-name">${w.name}</div>
+                <div class="winner-school">${w.school || ''}</div>
+            </div>
+            ${badge}
+        </div>`;
+}
+
+function renderLatestList(winners) {
+    const list = document.getElementById("latest-list");
+    const empty = document.getElementById("latest-empty");
+    if (!winners || winners.length === 0) {
+        empty.style.display = "block";
+        list.innerHTML = "";
+        return;
+    }
+    empty.style.display = "none";
+    list.innerHTML = winners.map(w => winnerHTML(w, true)).join("");
+}
+
+function renderAllList() {
+    const list = document.getElementById("all-list");
+    const empty = document.getElementById("all-empty");
+    if (!allWinners || allWinners.length === 0) {
+        empty.style.display = "block";
+        list.innerHTML = "";
+        return;
+    }
+    empty.style.display = "none";
+    // Group by name for readability — show most recent first
+    list.innerHTML = [...allWinners].reverse().map(w => winnerHTML(w, false)).join("");
+}
+
+// ─── Tabs ────────────────────────────────────────────────
+function switchTab(tab) {
+    document.getElementById("tab-latest").classList.toggle("active", tab === "latest");
+    document.getElementById("tab-all").classList.toggle("active", tab === "all");
+    document.getElementById("panel-latest").classList.toggle("hidden", tab !== "latest");
+    document.getElementById("panel-all").classList.toggle("hidden", tab === "latest");
+}
+</script>
+</body>
+</html>
