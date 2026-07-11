@@ -104,7 +104,6 @@
                 <div id="doctor-qr-card" class="hidden rounded-[2rem] border border-indigo-100 bg-indigo-50/60 p-5 text-center">
                     <p class="text-xs font-black uppercase tracking-[0.18em] text-indigo-400">My Check-in QR</p>
                     <img id="doctor-qr-image" class="mx-auto mt-3 h-48 w-48 rounded-2xl bg-white p-3 shadow-sm" alt="醫師 QR Code">
-                    <p id="doctor-qr-link" class="mt-3 break-all text-xs font-bold text-indigo-700"></p>
                 </div>
             </div>
 
@@ -265,13 +264,11 @@
 
         const qrCard = document.getElementById('doctor-qr-card');
         const qrImage = document.getElementById('doctor-qr-image');
-        const qrLink = document.getElementById('doctor-qr-link');
         const gateUrl = new URL('gate.html', window.location.href);
         gateUrl.searchParams.set('id', reg.registration_no);
         gateUrl.searchParams.set('name', doctor.name);
         const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(gateUrl.toString())}`;
         qrImage.src = qrUrl;
-        qrLink.textContent = gateUrl.toString();
         qrCard.classList.remove('hidden');
         
         document.getElementById('display-balance').innerText = sum ? sum.remaining_amount.toLocaleString() : '0';
