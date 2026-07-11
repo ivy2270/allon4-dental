@@ -73,8 +73,30 @@
           <button type="button" class="school-button rounded-md border border-slate-200 px-3 py-5 text-base font-black text-slate-700 transition hover:border-blue-300" data-school="國防" aria-pressed="false">國防</button>
           <button type="button" class="school-button rounded-md border border-slate-200 px-3 py-5 text-base font-black text-slate-700 transition hover:border-blue-300" data-school="其他友校" aria-pressed="false">其他友校</button>
         </div>
+
+        <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <button type="button" class="lightbox-trigger group overflow-hidden rounded-md border border-slate-200 transition hover:border-blue-300" data-full="https://all-on-4-photo.s3.ap-east-2.amazonaws.com/wp-content/uploads/2026/06/30011956/class01.jpg">
+            <img src="https://all-on-4-photo.s3.ap-east-2.amazonaws.com/wp-content/uploads/2026/06/30011956/class01.jpg" alt="說明圖片 1" class="h-full w-full object-cover transition duration-200 group-hover:scale-105">
+          </button>
+          <button type="button" class="lightbox-trigger group overflow-hidden rounded-md border border-slate-200 transition hover:border-blue-300" data-full="https://all-on-4-photo.s3.ap-east-2.amazonaws.com/wp-content/uploads/2026/06/30011953/class02.jpg">
+            <img src="https://all-on-4-photo.s3.ap-east-2.amazonaws.com/wp-content/uploads/2026/06/30011953/class02.jpg" alt="說明圖片 2" class="h-full w-full object-cover transition duration-200 group-hover:scale-105">
+          </button>
+        </div>
       </section>
     </section>
+
+    <div id="imageLightbox" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 p-4">
+      <button type="button" id="lightboxClose" class="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-md bg-white/10 text-white transition hover:bg-white/20" aria-label="關閉">
+        <i data-lucide="x" class="h-6 w-6"></i>
+      </button>
+      <button type="button" id="lightboxPrev" class="absolute left-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-md bg-white/10 text-white transition hover:bg-white/20 md:left-4" aria-label="上一張">
+        <i data-lucide="chevron-left" class="h-6 w-6"></i>
+      </button>
+      <img id="lightboxImage" src="" alt="放大圖片" class="max-h-[90vh] max-w-[90vw] rounded-md object-contain">
+      <button type="button" id="lightboxNext" class="absolute right-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-md bg-white/10 text-white transition hover:bg-white/20 md:right-4" aria-label="下一張">
+        <i data-lucide="chevron-right" class="h-6 w-6"></i>
+      </button>
+    </div>
 
     <form id="registrationForm" class="hidden grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
       <section class="space-y-5">
@@ -799,6 +821,74 @@
         els.submitBtn.disabled = false;
       }
     });
+
+    (function initLightbox() {
+      const lightbox = document.getElementById("imageLightbox");
+      const lightboxImage = document.getElementById("lightboxImage");
+      const lightboxClose = document.getElementById("lightboxClose");
+      const lightboxPrev = document.getElementById("lightboxPrev");
+      const lightboxNext = document.getElementById("lightboxNext");
+
+      const triggers = Array.from(document.querySelectorAll(".lightbox-trigger"));
+      const images = triggers.map(trigger => trigger.dataset.full);
+      let currentIndex = 0;
+      let touchStartX = null;
+
+      function showImage(index) {
+        currentIndex = (index + images.length) % images.length;
+        lightboxImage.src = images[currentIndex];
+      }
+
+      function openLightbox(index) {
+        showImage(index);
+        lightbox.classList.remove("hidden");
+        lightbox.classList.add("flex");
+        document.body.style.overflow = "hidden";
+      }
+
+      function closeLightbox() {
+        lightbox.classList.add("hidden");
+        lightbox.classList.remove("flex");
+        lightboxImage.src = "";
+        document.body.style.overflow = "";
+      }
+
+      function showPrev() { showImage(currentIndex - 1); }
+      function showNext() { showImage(currentIndex + 1); }
+
+      triggers.forEach((trigger, index) => {
+        trigger.addEventListener("click", () => openLightbox(index));
+      });
+
+      lightboxClose.addEventListener("click", closeLightbox);
+      lightboxPrev.addEventListener("click", showPrev);
+      lightboxNext.addEventListener("click", showNext);
+
+      lightbox.addEventListener("click", event => {
+        if (event.target === lightbox) closeLightbox();
+      });
+
+      document.addEventListener("keydown", event => {
+        if (lightbox.classList.contains("hidden")) return;
+        if (event.key === "Escape") closeLightbox();
+        if (event.key === "ArrowLeft") showPrev();
+        if (event.key === "ArrowRight") showNext();
+      });
+
+      lightbox.addEventListener("touchstart", event => {
+        touchStartX = event.changedTouches[0].clientX;
+      }, { passive: true });
+
+      lightbox.addEventListener("touchend", event => {
+        if (touchStartX === null) return;
+        const deltaX = event.changedTouches[0].clientX - touchStartX;
+        if (Math.abs(deltaX) > 40) {
+          if (deltaX > 0) showPrev();
+          else showNext();
+        }
+        touchStartX = null;
+      }, { passive: true });
+    })();
 
     lucide.createIcons();
   </script>
