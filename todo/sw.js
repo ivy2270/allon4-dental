@@ -1,4 +1,4 @@
-const CACHE_NAME = 'todo-v1'; // 之後有更新，把版本號往上加（todo-v2, v3...），舊快取才會自動被清掉
+const CACHE_NAME = 'todo-v2'; // 之後有更新，把版本號往上加（todo-v2, v3...），舊快取才會自動被清掉
 const ASSETS = [
   './login.html',
   './index.html',
