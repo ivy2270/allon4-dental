@@ -1,0 +1,23 @@
+{
+  "name": "四校待辦事項",
+  "short_name": "四校待辦",
+  "description": "專為活動分工設計的共用待辦事項系統",
+  "start_url": "index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#d09ba3",
+  "theme_color": "#8e3f75",
+  "orientation": "portrait",
+  "icons": [
+{
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <!-- 行動裝置最佳化，防止雙擊放大、確保輸入框彈出時畫面流暢 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>活動待辦系統 - 登入</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#8e3f75">
+    <!-- iOS 對 Web App Manifest 支援不完整，需要額外的 apple 專屬 meta tag 才能正確「加入主畫面」 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="活動Todo">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2098/2098402.png">
+
+    <!-- 引入簡單好看的 CSS 框架 (Tailwind)，這樣不用自己刻 UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome 圖示庫 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.0/css/all.min.css">
+    <!-- 與 index.html 共用同一套手寫感中文字型，維持兩頁風格一致 -->
+    <link href="https://font.emtech.cc/css/jfOpenHuninn" rel="stylesheet" />
+    <style>
+        :root {
+            --purple-900: #8e3f75;
+            --purple-700: #723261;
+            --blush-500: #d09ba3;
+            --blush-100: #f6e8ec;
+            --ink: #3d2b35;
+            --paper: #fdf9fa;
+        }
+        body { font-family: 'jfOpenHuninn', sans-serif; background-color: var(--paper); color: var(--ink); }
+        .bg-main-purple { background-color: var(--purple-900); }
+        .text-main-purple { color: var(--purple-900); }
+        .bg-pink-purple { background-color: var(--blush-500); }
+        .border-pink-purple { border-color: var(--blush-500); }
+        .btn-primary { background-color: var(--purple-900); transition: background-color .15s ease, transform .1s ease; }
+        .btn-primary:hover { background-color: var(--purple-700); }
+        .btn-primary:active { transform: scale(.98); }
+        .input-icon-field:focus-within { border-color: var(--purple-900); box-shadow: 0 0 0 3px var(--blush-100); }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen px-4">
+
+    <!-- 登入卡片容器 -->
+    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-sm border border-[color:var(--blush-100)]">
+        <div class="w-16 h-16 rounded-full bg-main-purple text-white flex items-center justify-center text-2xl mx-auto mb-4 shadow-md">
+            <i class="fa-solid fa-people-group"></i>
+        </div>
+        <h2 class="text-2xl font-bold mb-6 text-center" style="color: var(--ink);">活動待辦系統</h2>
+
+        <form id="loginForm" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">帳號 (Email)</label>
+                <div class="input-icon-field flex items-center gap-2 w-full px-3 py-2 border border-gray-300 rounded-lg transition-all">
+                    <i class="fa-solid fa-envelope text-gray-400"></i>
+                    <input type="email" id="email" required placeholder="example@mail.com"
+                           class="w-full outline-none border-none p-0 bg-transparent">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">密碼</label>
+                <div class="input-icon-field flex items-center gap-2 w-full px-3 py-2 border border-gray-300 rounded-lg transition-all">
+                    <i class="fa-solid fa-lock text-gray-400"></i>
+                    <input type="password" id="password" required placeholder="請輸入密碼"
+                           class="w-full outline-none border-none p-0 bg-transparent">
+                </div>
+            </div>
+
+            <!-- 錯誤訊息顯示區 -->
+            <p id="errorMessage" class="text-red-500 text-sm hidden flex items-center gap-1.5"></p>
+
+            <button type="submit" 
+                    class="btn-primary w-full text-white py-2.5 rounded-lg font-medium flex items-center justify-center gap-2">
+                <i class="fa-solid fa-right-to-bracket"></i>
+                登入系統
+            </button>
+        </form>
+    </div>
+
+    <!-- ================= Firebase SDK 引入 ================= -->
+    <!-- 1. 引入 Firebase 核心 App 模組 -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import {
+        initializeAuth,
+        indexedDBLocalPersistence,
+        browserLocalPersistence,
+        browserSessionPersistence,
+        inMemoryPersistence,
+        onAuthStateChanged,
+        signInWithEmailAndPassword
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDVlJyhMQZNtoA5a2kyMlxxXKbFhJKqsT0",
+        authDomain: "allon4-todo-app.firebaseapp.com",
+        projectId: "allon4-todo-app",
+        storageBucket: "allon4-todo-app.firebasestorage.app",
+        messagingSenderId: "474512520233",
+        appId: "1:474512520233:web:0ee404c2f713f03b345838"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    // 【Firefox 修正】用 initializeAuth 搭配多層 persistence fallback。
+    // Firefox 在「嚴格模式追蹤保護」或「隱私瀏覽」下會封鎖 IndexedDB，
+    // 導致 getAuth() 預設的持久化機制失效，登入後重新整理/跳頁就會被判定為「未登入」。
+    // 這裡依序嘗試 IndexedDB → localStorage → sessionStorage → 記憶體，確保任何情況下都至少能保住登入狀態。
+    const auth = initializeAuth(app, {
+        persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence, inMemoryPersistence]
+    });
+
+    // 【PWA 情境】start_url 若指向本頁，或使用者直接把這頁加入書籤/主畫面，
+    // 若登入狀態其實還在（例如 PWA 已裝在手機上），就直接跳過表單，避免每次打開都要重新看一次登入畫面。
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            window.location.replace('index.html');
+        }
+    });
+
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const errorText = document.getElementById('errorMessage');
+        errorText.classList.add('hidden');
+
+        signInWithEmailAndPassword(auth, email, password)
+            .then(() => {
+                // 登入成功，直接跳轉，不要留戀
+                window.location.replace('index.html');
+            })
+            .catch((error) => {
+                errorText.classList.remove('hidden');
+                const msg = (error.code === 'auth/invalid-credential')
+                    ? '帳號或密碼輸入錯誤'
+                    : ('登入失敗: ' + error.message);
+                errorText.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${msg}`;
+            });
+    });
+</script>
+
+    <!-- 註冊 Service Worker，讓瀏覽器判定這是可安裝的 PWA -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch((err) => {
+                    console.error('Service Worker 註冊失敗：', err);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
