@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>活動待辦系統 - 主畫面</title>
+	<link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://font.emtech.cc/css/jfOpenHuninn" rel="stylesheet" />
+    <!-- Font Awesome 圖示庫 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.0/css/all.min.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#8e3f75">
+    <!-- iOS 對 Web App Manifest 支援不完整，需要額外的 apple 專屬 meta tag 才能正確「加入主畫面」 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="四校待辦">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <style>
+        :root {
+            --purple-900: #8e3f75;
+            --purple-700: #723261;
+            --blush-500: #d09ba3;
+            --blush-100: #f6e8ec;
+            --ink: #3d2b35;
+            --paper: #fdf9fa;
+        }
+        body { font-family: 'jfOpenHuninn', sans-serif; background-color: var(--paper); color: var(--ink); }
+        .bg-main-purple { background-color: var(--purple-900); }
+        .text-main-purple { color: var(--purple-900); }
+        .bg-pink-purple { background-color: var(--blush-500); }
+        .border-pink-purple { border-color: var(--blush-500); }
+        .bg-blush-light { background-color: var(--blush-100); }
+        .btn-primary { background-color: var(--purple-900); transition: background-color .15s ease, transform .1s ease; }
+        .btn-primary:hover { background-color: var(--purple-700); }
+        .btn-primary:active { transform: scale(.98); }
+        .fab-primary { background-color: var(--purple-900); transition: background-color .15s ease, transform .15s ease; }
+        .fab-primary:hover { background-color: var(--purple-700); }
+        .todo-card { transition: box-shadow .15s ease, transform .1s ease; }
+        .todo-card:hover { box-shadow: 0 4px 14px rgba(142,63,117,0.12); }
+        .todo-card.highlight-today { background-color: #fffbeb; border-color: #fcd34d; }
+        .todo-card.highlight-overdue { background-color: #fef2f2; border-color: #fca5a5; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Toast 通知 */
+        #toastContainer { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); z-index: 50; display: flex; flex-direction: column; gap: 8px; align-items: center; width: 100%; padding: 0 16px; pointer-events: none; }
+        .toast { pointer-events: auto; max-width: 320px; padding: 10px 16px; border-radius: 12px; color: #fff; font-size: 13px; font-weight: bold; display: flex; align-items: center; gap: 8px; box-shadow: 0 6px 20px rgba(0,0,0,0.15); opacity: 0; transform: translateY(10px); transition: opacity .25s ease, transform .25s ease; }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast.toast-success { background-color: var(--purple-900); }
+        .toast.toast-error { background-color: #dc2626; }
+
+        /* 自訂確認彈窗（取代原生 confirm） */
+        #confirmModal { transition: opacity .2s ease; }
+        #confirmModal .confirm-box { transition: transform .2s ease; }
+    </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden">
+
+    <!-- Toast 通知容器 -->
+    <div id="toastContainer"></div>
+
+    <!-- 自訂確認彈窗（取代原生 confirm，樣式與整體 CSS 一致） -->
+    <div id="confirmModal" class="fixed inset-0 bg-black/50 z-30 flex items-center justify-center p-4 hidden opacity-0">
+        <div class="confirm-box bg-white rounded-2xl p-6 w-full max-w-xs text-center scale-95">
+            <div class="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center text-xl mx-auto mb-3">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <p id="confirmModalMessage" class="text-sm mb-5" style="color: var(--ink);"></p>
+            <div class="flex gap-2">
+                <button id="confirmModalCancel" class="flex-1 bg-gray-100 text-gray-500 hover:bg-gray-200 py-2.5 rounded-xl text-sm font-bold transition-colors">取消</button>
+                <button id="confirmModalOk" class="flex-1 bg-red-500 hover:bg-red-600 text-white py-2.5 rounded-xl text-sm font-bold transition-colors">確認刪除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 修改暱稱彈窗（取代原生 prompt，樣式與整體 CSS 一致） -->
+    <div id="nicknameModal" class="fixed inset-0 bg-black/50 z-30 flex items-center justify-center p-4 hidden opacity-0">
+        <div class="confirm-box bg-white rounded-2xl p-6 w-full max-w-xs scale-95">
+            <div class="w-12 h-12 rounded-full bg-main-purple text-white flex items-center justify-center text-xl mx-auto mb-3">
+                <i class="fa-solid fa-user-pen"></i>
+            </div>
+            <h3 class="text-center font-bold mb-3" style="color: var(--ink);">修改暱稱</h3>
+            <input type="text" id="nicknameModalInput" maxlength="20" placeholder="請輸入新暱稱"
+                   class="w-full border rounded-xl p-2.5 text-sm text-center mb-4 focus:outline-none focus:ring-2 focus:ring-[color:var(--blush-500)] focus:border-[color:var(--purple-900)]">
+            <div class="flex gap-2">
+                <button id="nicknameModalCancel" class="flex-1 bg-gray-100 text-gray-500 hover:bg-gray-200 py-2.5 rounded-xl text-sm font-bold transition-colors">取消</button>
+                <button id="nicknameModalOk" class="btn-primary flex-1 text-white py-2.5 rounded-xl text-sm font-bold">儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 頂部導覽列 -->
+    <header class="bg-main-purple text-white px-4 py-3 shadow-md flex justify-between items-center shrink-0">
+        <div>
+            <h1 class="text-lg font-bold">活動待辦大廳</h1>
+            <button id="userDisplayName" class="text-xs bg-white/20 px-2 py-0.5 rounded-full mt-0.5 flex items-center gap-1.5">
+                <i class="fa-solid fa-spinner fa-spin"></i> 驗證身分中...
+            </button>
+        </div>
+        <button id="logoutBtn" class="text-xs text-white/80 hover:text-white flex items-center gap-1.5 transition-colors">
+            <i class="fa-solid fa-right-from-bracket"></i> 登出
+        </button>
+    </header>
+
+    <!-- 視角切換器 -->
+    <div class="bg-white p-3 shadow-sm border-b flex gap-2 shrink-0">
+        <button id="tabAll" class="flex-1 py-2.5 text-center rounded-xl font-bold bg-main-purple text-white transition-all text-sm flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-users"></i> 所有人任務
+        </button>
+        <button id="tabMine" class="flex-1 py-2.5 text-center rounded-xl font-bold bg-gray-100 text-gray-600 transition-all text-sm flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-user"></i> 我的任務
+        </button>
+    </div>
+
+    <!-- 待辦事項清單區 -->
+    <main id="todoList" class="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar pb-24">
+        <div class="text-center text-gray-400 py-8">
+            <i class="fa-solid fa-spinner fa-spin mr-1.5"></i>驗證登入中，請稍候...
+        </div>
+    </main>
+
+    <!-- 底部懸浮快速新增按鈕 -->
+    <div class="fixed bottom-6 right-6 z-10">
+        <button id="openCreateModalBtn" class="fab-primary text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-xl hover:scale-105 active:scale-95 transition-all">
+            <i class="fa-solid fa-plus"></i>
+        </button>
+    </div>
+
+    <!-- ======================= [抽屜式選單 / Drawer] 任務詳細、進度與 LOG ======================= -->
+    <div id="detailDrawer" class="fixed inset-0 bg-black/50 z-20 hidden opacity-0 transition-opacity duration-300">
+        <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[90vh] flex flex-col p-5 translate-y-full transition-transform duration-300">
+            <div class="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4" onclick="closeDrawer()"></div>
+            
+            <div class="flex justify-between items-start mb-3">
+                <div class="w-full mr-4">
+                    <label class="text-[10px] text-gray-400 block">任務名稱 (點擊可直接修改)</label>
+                    <input type="text" id="drawerTitleInput" class="text-lg font-bold w-full border-b border-transparent focus:outline-none py-1" style="color: var(--ink);" onfocus="this.style.borderColor='var(--purple-900)'" onblur="this.style.borderColor='transparent'">
+                </div>
+                <button id="closeDrawerBtn" class="text-gray-400 hover:text-gray-600 text-xl px-2 transition-colors">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <div class="overflow-y-auto flex-1 space-y-4 pr-1 no-scrollbar pb-6">
+                <!-- 負責人多選區 -->
+                <div>
+                    <label class="text-xs text-gray-400 block mb-1">負責人分配 (可多選)</label>
+                    <div id="drawerAssigneesContainer" class="flex flex-wrap gap-2 py-1"></div>
+                </div>
+
+                <!-- 任務日期 -->
+                <div>
+                    <label class="text-xs text-gray-400 block mb-1">任務日期 (選填)</label>
+                    <div class="flex gap-2">
+                        <input type="date" id="drawerDateInput" class="flex-1 border rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--blush-500)] focus:border-[color:var(--purple-900)]">
+                        <button id="drawerDateClearBtn" type="button" class="px-3 rounded-xl border text-gray-400 hover:text-red-500 hover:border-red-300 transition-colors" title="清除日期">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 修改進度/備註 -->
+                <div>
+                    <label class="text-xs text-gray-400 block mb-1">目前進度與備註說明</label>
+                    <textarea id="drawerDescInput" class="w-full border rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--blush-500)] focus:border-[color:var(--purple-900)]" rows="3" placeholder="寫點目前的進度狀況..."></textarea>
+                    <button id="saveTodoChangesBtn" class="btn-primary w-full mt-2 text-white py-2.5 rounded-xl text-sm font-bold shadow-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-floppy-disk"></i> 儲存所有修改 (名稱/負責人/備註)
+                    </button>
+                    <button id="deleteTodoBtn" class="w-full mt-2 bg-red-50 text-red-500 hover:bg-red-100 py-2.5 rounded-xl text-sm font-bold border border-red-200 transition-colors flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-trash-can"></i> 刪除此任務
+                    </button>
+                </div>
+
+                <hr class="border-gray-100">
+
+                <!-- LOG 操作紀錄時間軸 -->
+                <div>
+                    <label class="text-sm font-bold block mb-3 flex items-center gap-1.5" style="color: var(--ink);">
+                        <i class="fa-solid fa-clock-rotate-left text-main-purple"></i> 操作歷史日誌
+                    </label>
+                    <div id="drawerLogs" class="space-y-4 border-l-2 border-pink-purple/40 pl-4 ml-2 text-xs text-gray-500"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================= [彈出視窗] 新增任務 ======================= -->
+    <div id="createModal" class="fixed inset-0 bg-black/50 z-20 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-sm space-y-4 max-h-[85vh] flex flex-col">
+            <h3 class="text-lg font-bold shrink-0 flex items-center gap-2" style="color: var(--ink);">
+                <i class="fa-solid fa-plus text-main-purple"></i> 新增待辦任務
+            </h3>
+            <div class="flex-1 overflow-y-auto space-y-4 no-scrollbar pr-1">
+                <div>
+                    <label class="text-xs text-gray-400 block mb-1">任務名稱</label>
+                    <input type="text" id="newTodoTitle" class="w-full border rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--blush-500)] focus:border-[color:var(--purple-900)]" placeholder="例如：搬運主場音響">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-400 block mb-1">初始備註/說明</label>
+                    <textarea id="newTodoDesc" class="w-full border rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--blush-500)] focus:border-[color:var(--purple-900)]" rows="2" placeholder="選填..."></textarea>
+                </div>
+                <div>
+                    <label class="text-xs text-gray-400 block mb-1">任務日期 (選填)</label>
+                    <input type="date" id="newTodoDate" class="w-full border rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[color:var(--blush-500)] focus:border-[color:var(--purple-900)]">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-400 block mb-1">指派負責人 (可多選)</label>
+                    <div id="newTodoAssigneesContainer" class="flex flex-wrap gap-2 border p-3 rounded-xl bg-gray-50">
+                        <i class="fa-solid fa-spinner fa-spin text-gray-400"></i>
+                        <span class="text-xs text-gray-400">正在讀取成員名單...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-2 pt-2 shrink-0">
+                <button id="closeCreateModalBtn" class="flex-1 bg-gray-100 text-gray-500 hover:bg-gray-200 py-2.5 rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-xmark"></i> 取消
+                </button>
+                <button id="submitTodoBtn" class="btn-primary flex-1 text-white py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-check"></i> 確認建立
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================= Firebase SDK & 系統邏輯 ======================= -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import {
+            initializeAuth,
+            indexedDBLocalPersistence,
+            browserLocalPersistence,
+            browserSessionPersistence,
+            inMemoryPersistence,
+            onAuthStateChanged,
+            signOut
+        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc, getDocs, onSnapshot, query, where, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDVlJyhMQZNtoA5a2kyMlxxXKbFhJKqsT0",
+            authDomain: "allon4-todo-app.firebaseapp.com",
+            projectId: "allon4-todo-app",
+            storageBucket: "allon4-todo-app.firebasestorage.app",
+            messagingSenderId: "474512520233",
+            appId: "1:474512520233:web:0ee404c2f713f03b345838"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        // 與 login.html 使用完全相同的 persistence fallback 策略，
+        // 兩邊設定不一致是造成 Firefox 登入後被踢回登入頁的主因之一。
+        const auth = initializeAuth(app, {
+            persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence, inMemoryPersistence]
+        });
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        let myNickname = "";
+        let allMembers = []; 
+        let currentView = 'all';
+        let unsubscribeTodos = null;
+        let unsubscribeLogs = null;
+        let activeTodoId = null;
+        let activeTodoTitle = '';
+
+        // ===================== Toast 通知（取代 alert） =====================
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            const icon = type === 'success' ? 'fa-circle-check' : 'fa-triangle-exclamation';
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `<i class="fa-solid ${icon}"></i><span>${message}</span>`;
+            container.appendChild(toast);
+            requestAnimationFrame(() => toast.classList.add('show'));
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 250);
+            }, 2800);
+        }
+
+        // ===================== 自訂確認彈窗（取代 confirm） =====================
+        function showConfirm(message) {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('confirmModal');
+                const box = modal.querySelector('.confirm-box');
+                document.getElementById('confirmModalMessage').innerText = message;
+                modal.classList.remove('hidden');
+                requestAnimationFrame(() => {
+                    modal.classList.remove('opacity-0');
+                    box.classList.remove('scale-95');
+                });
+
+                const cleanup = (result) => {
+                    modal.classList.add('opacity-0');
+                    box.classList.add('scale-95');
+                    setTimeout(() => modal.classList.add('hidden'), 200);
+                    okBtn.removeEventListener('click', onOk);
+                    cancelBtn.removeEventListener('click', onCancel);
+                    resolve(result);
+                };
+                const okBtn = document.getElementById('confirmModalOk');
+                const cancelBtn = document.getElementById('confirmModalCancel');
+                const onOk = () => cleanup(true);
+                const onCancel = () => cleanup(false);
+                okBtn.addEventListener('click', onOk);
+                cancelBtn.addEventListener('click', onCancel);
+            });
+        }
+
+        // ===================== 自訂暱稱輸入彈窗（取代 prompt） =====================
+        function showNicknamePrompt(currentName) {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('nicknameModal');
+                const box = modal.querySelector('.confirm-box');
+                const input = document.getElementById('nicknameModalInput');
+                input.value = currentName || '';
+
+                modal.classList.remove('hidden');
+                requestAnimationFrame(() => {
+                    modal.classList.remove('opacity-0');
+                    box.classList.remove('scale-95');
+                    input.focus();
+                    input.select();
+                });
+
+                const cleanup = (result) => {
+                    modal.classList.add('opacity-0');
+                    box.classList.add('scale-95');
+                    setTimeout(() => modal.classList.add('hidden'), 200);
+                    okBtn.removeEventListener('click', onOk);
+                    cancelBtn.removeEventListener('click', onCancel);
+                    input.removeEventListener('keydown', onKeydown);
+                    resolve(result);
+                };
+                const okBtn = document.getElementById('nicknameModalOk');
+                const cancelBtn = document.getElementById('nicknameModalCancel');
+                const onOk = () => cleanup(input.value.trim());
+                const onCancel = () => cleanup(null);
+                const onKeydown = (e) => { if (e.key === 'Enter') onOk(); };
+                okBtn.addEventListener('click', onOk);
+                cancelBtn.addEventListener('click', onCancel);
+                input.addEventListener('keydown', onKeydown);
+            });
+        }
+
+        // ===================== 日期輔助函式 =====================
+        // 取得今天的日期字串 (YYYY-MM-DD，依裝置本地時間，避免時區誤差)
+        function todayStr() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+        // 判斷任務所屬的排序分組：0=今天 1=過期 2=無日期 3=未來日期
+        function getDateGroup(due_date) {
+            if (!due_date) return 2;
+            const today = todayStr();
+            if (due_date === today) return 0;
+            if (due_date < today) return 1;
+            return 3;
+        }
+        // 產生卡片上顯示的日期徽章文字與樣式
+        function getDateBadge(due_date) {
+            if (!due_date) return null;
+            const today = todayStr();
+            if (due_date === today) {
+                return { text: '今天到期', highlight: 'highlight-today', badgeClass: 'bg-amber-100 text-amber-700' };
+            }
+            if (due_date < today) {
+                const diffDays = Math.round((new Date(today + 'T00:00:00') - new Date(due_date + 'T00:00:00')) / 86400000);
+                return { text: `已過期 ${diffDays} 天`, highlight: 'highlight-overdue', badgeClass: 'bg-red-100 text-red-600' };
+            }
+            const [y, m, d] = due_date.split('-');
+            return { text: `${parseInt(m)}/${parseInt(d)}`, highlight: '', badgeClass: 'bg-gray-100 text-gray-500' };
+        }
+
+        // 【核心安全機制】絕對等確定登入後，才開始啟動系統
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+
+                try {
+                    // 1. 初始化或讀取當前使用者的暱稱
+                    const userDocRef = doc(db, "users", user.uid);
+                    const userDoc = await getDoc(userDocRef);
+
+                    if (userDoc.exists()) {
+                        myNickname = userDoc.data().displayName;
+                    } else {
+                        myNickname = user.email.split('@')[0];
+                        await setDoc(userDocRef, { displayName: myNickname, email: user.email });
+                    }
+
+                    document.getElementById('userDisplayName').innerHTML = `<i class="fa-solid fa-user"></i> 暱稱: ${myNickname} <i class="fa-solid fa-pen text-[10px] opacity-70"></i>`;
+                } catch (err) {
+                    // 若卡在「驗證身分中」不動，通常是 Firestore 安全性規則不允許讀寫 users collection，
+                    // 打開瀏覽器 Console 會看到 "Missing or insufficient permissions" 之類的錯誤。
+                    console.error('讀取/建立使用者暱稱失敗：', err);
+                    document.getElementById('userDisplayName').innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> 暱稱載入失敗 (點擊重試)`;
+                    myNickname = myNickname || user.email.split('@')[0];
+                }
+
+                // 2. 依序啟動：先載入成員，再載入待辦任務
+                listenMembers();
+                startListeningTodos();
+            } else {
+                // 如果沒登入，強制踢回登入頁
+                window.location.replace('login.html');
+            }
+        });
+
+        // 修改暱稱功能
+        document.getElementById('userDisplayName').addEventListener('click', async () => {
+            if (!currentUser) return;
+            const newName = await showNicknamePrompt(myNickname);
+            if (newName && newName.trim() !== "") {
+                const nameToSave = newName.trim();
+                try {
+                    await setDoc(doc(db, "users", currentUser.uid), { displayName: nameToSave, email: currentUser.email }, { merge: true });
+                    myNickname = nameToSave;
+                    document.getElementById('userDisplayName').innerHTML = `<i class="fa-solid fa-user"></i> 暱稱: ${myNickname} <i class="fa-solid fa-pen text-[10px] opacity-70"></i>`;
+                    showToast("暱稱修改成功！", 'success');
+                } catch (err) {
+                    console.error('更新暱稱失敗：', err);
+                    showToast("暱稱修改失敗，請確認 Firestore 安全性規則", 'error');
+                }
+            }
+        });
+
+        // 監聽並讀取所有成員（負責人清單必須包含所有使用者，也包含自己）
+        // 【重要】改用 uid 當作負責人清單的主鍵，checkbox 的 value 是 uid、畫面顯示才用當下的暱稱，
+        // 這樣以後不管誰改暱稱，指派關係都不會跑掉。
+        function listenMembers() {
+            onSnapshot(collection(db, "users"), (snapshot) => {
+                allMembers = [];
+                snapshot.forEach(docSnap => {
+                    const name = docSnap.data().displayName;
+                    if (name) allMembers.push({ uid: docSnap.id, displayName: name });
+                });
+
+                // 渲染新增視窗的成員多選清單（此時包含所有人，含本人）
+                const newContainer = document.getElementById('newTodoAssigneesContainer');
+                if (allMembers.length === 0) {
+                    newContainer.innerHTML = `<span class="text-xs text-gray-400">目前沒有任何成員資料</span>`;
+                    return;
+                }
+                newContainer.innerHTML = allMembers.map(member => `
+                    <label class="flex items-center gap-1 bg-white px-2 py-1 rounded-lg border text-xs cursor-pointer">
+                        <input type="checkbox" name="newAssignees" value="${member.uid}" class="rounded accent-[#8e3f75]">
+                        ${member.displayName}
+                    </label>
+                `).join('');
+            }, (err) => {
+                // 這裡最常見的原因是 Firestore 安全性規則沒有開放「列出整個 users collection」的權限，
+                // 導致畫面永遠卡在「正在讀取成員名單...」。打開 Console 可看到詳細錯誤。
+                console.error('讀取成員名單失敗：', err);
+                const newContainer = document.getElementById('newTodoAssigneesContainer');
+                newContainer.innerHTML = `<span class="text-xs text-red-500"><i class="fa-solid fa-triangle-exclamation"></i> 成員名單讀取失敗，請確認 Firestore 安全性規則是否允許讀取 users collection</span>`;
+            });
+        }
+
+        // 依 uid 查目前的暱稱；找不到就直接顯示原始值（相容尚未打開重存過的舊資料，舊資料存的是暱稱字串本身）
+        function resolveAssigneeLabel(value) {
+            const member = allMembers.find(m => m.uid === value);
+            return member ? member.displayName : value;
+        }
+        // 判斷某位成員是否在負責人清單中：同時比對 uid（新格式）與暱稱字串（尚未重存過的舊資料）
+        function isMemberAssigned(assigneesArr, member) {
+            return assigneesArr.includes(member.uid) || assigneesArr.includes(member.displayName);
+        }
+        // 判斷目前登入者是否為某任務的負責人之一（同時比對 uid 與目前的暱稱，相容舊資料）
+        function isCurrentUserAssigned(assigneesArr) {
+            if (!currentUser) return false;
+            return assigneesArr.includes(currentUser.uid) || assigneesArr.includes(myNickname);
+        }
+
+        // 即時監聽待辦任務（拔除任何可能在未建索引時引發崩潰的排序，全交由前端處理）
+        function startListeningTodos() {
+            if (unsubscribeTodos) unsubscribeTodos();
+            
+            unsubscribeTodos = onSnapshot(collection(db, "todos"), (snapshot) => {
+                const todoListContainer = document.getElementById('todoList');
+                todoListContainer.innerHTML = '';
+
+                if (snapshot.empty) {
+                    todoListContainer.innerHTML = `<div class="text-center text-gray-400 py-12"><i class="fa-solid fa-circle-check text-2xl mb-2 block text-[color:var(--blush-500)]"></i>目前沒有任何任務</div>`;
+                    return;
+                }
+
+                // 收集資料，依「今天 > 過期 > 無日期 > 未來日期(近到遠)」分組排序
+                let localTodos = [];
+                snapshot.forEach((docSnap) => {
+                    localTodos.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                localTodos.sort((a, b) => {
+                    const groupA = getDateGroup(a.due_date);
+                    const groupB = getDateGroup(b.due_date);
+                    if (groupA !== groupB) return groupA - groupB;
+
+                    // 同一分組內的排序規則
+                    if (groupA === 1) {
+                        // 過期：離今天較近的排前面（日期字串越大越接近今天）
+                        return b.due_date.localeCompare(a.due_date);
+                    }
+                    if (groupA === 3) {
+                        // 未來：離今天較近的排前面
+                        return a.due_date.localeCompare(b.due_date);
+                    }
+                    // 今天 / 無日期：用建立時間排序（新到舊）
+                    return (b.created_at?.toDate() || 0) - (a.created_at?.toDate() || 0);
+                });
+
+                localTodos.forEach((todo) => {
+                    const assigneesArr = todo.assignees || [];
+
+                    if (currentView === 'mine' && !isCurrentUserAssigned(assigneesArr)) return;
+
+                    // 已完成的任務不套用醒目高亮，只維持原本的淡化樣式
+                    const badge = getDateBadge(todo.due_date);
+                    const highlightClass = (!todo.is_completed && badge) ? badge.highlight : '';
+
+                    const card = document.createElement('div');
+                    card.className = `todo-card p-4 rounded-2xl shadow-sm border flex justify-between items-center ${todo.is_completed ? 'opacity-40 border-gray-200 bg-white' : (highlightClass || 'bg-white border-pink-purple/30')} ${highlightClass}`;
+                    
+                    card.innerHTML = `
+                        <div class="flex-1 min-w-0 pr-3 cursor-pointer" id="body-${todo.id}">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h4 class="font-bold text-gray-800 truncate ${todo.is_completed ? 'line-through text-gray-400' : ''}">${todo.title}</h4>
+                                ${badge ? `<span class="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-md ${badge.badgeClass} flex items-center gap-1"><i class="fa-solid fa-calendar-days"></i>${badge.text}</span>` : ''}
+                            </div>
+                            <p class="text-xs text-gray-400 truncate mt-0.5">${todo.description || '暫無進度備註...'}</p>
+                            <div class="flex gap-1 mt-2 flex-wrap">
+                                ${assigneesArr.map(value => `<span class="bg-pink-purple/10 text-main-purple text-[10px] px-2 py-0.5 rounded-md font-bold">@${resolveAssigneeLabel(value)}</span>`).join('')}
+                            </div>
+                        </div>
+                        <div class="flex items-center shrink-0 gap-2">
+                            <input type="checkbox" ${todo.is_completed ? 'checked' : ''} class="w-6 h-6 rounded-lg accent-[#8e3f75] border-gray-300" data-id="${todo.id}" data-title="${todo.title}">
+                            <button class="delete-todo-btn text-gray-300 hover:text-red-500 text-base leading-none px-1 transition-colors" data-id="${todo.id}" data-title="${todo.title}" title="刪除任務">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    `;
+
+                    // 點擊卡片開啟詳細抽屜
+                    card.querySelector(`#body-${todo.id}`).addEventListener('click', () => {
+                        openDrawer(todo.id, todo.title, todo.description || '', assigneesArr, todo.due_date || '');
+                    });
+
+                    // 快速勾選完成
+                    card.querySelector('input[type="checkbox"]').addEventListener('change', async (e) => {
+                        const todoId = e.target.dataset.id;
+                        const todoTitle = e.target.dataset.title;
+                        const isChecked = e.target.checked;
+
+                        await updateDoc(doc(db, "todos", todoId), { is_completed: isChecked });
+                        await addDoc(collection(db, "logs"), {
+                            todo_id: todoId,
+                            todo_title: todoTitle,
+                            operator_name: myNickname,
+                            action: isChecked ? "COMPLETE" : "UNCOMPLETE",
+                            content: isChecked ? "將任務狀態標記為【已完成】" : "取消了任務的完成狀態",
+                            timestamp: serverTimestamp()
+                        });
+                    });
+
+                    // 刪除任務（卡片上的快速刪除按鈕）
+                    card.querySelector('.delete-todo-btn').addEventListener('click', (e) => {
+                        e.stopPropagation(); // 避免同時觸發卡片點擊開啟抽屜
+                        const todoId = e.currentTarget.dataset.id;
+                        const todoTitle = e.currentTarget.dataset.title;
+                        deleteTodoTask(todoId, todoTitle);
+                    });
+
+                    todoListContainer.appendChild(card);
+                });
+            }, (err) => {
+                // 常見原因：Firestore 安全性規則未開放 todos collection 的讀取權限
+                console.error('讀取待辦任務失敗：', err);
+                document.getElementById('todoList').innerHTML = `<div class="text-center text-red-400 py-12"><i class="fa-solid fa-triangle-exclamation text-2xl mb-2 block"></i>任務讀取失敗，請確認 Firestore 安全性規則</div>`;
+            });
+        }
+
+        // 刪除任務：一併清除該任務相關的操作紀錄 (logs)，並用 batch 確保操作的一致性
+        async function deleteTodoTask(id, title) {
+            const confirmed = await showConfirm(`確定要刪除任務「${title}」嗎？此動作無法復原！`);
+            if (!confirmed) return;
+            try {
+                const logsRef = collection(db, "logs");
+                const q = query(logsRef, where("todo_id", "==", id));
+                const logsSnap = await getDocs(q);
+
+                const batch = writeBatch(db);
+                logsSnap.forEach(logDoc => batch.delete(logDoc.ref));
+                batch.delete(doc(db, "todos", id));
+                await batch.commit();
+
+                // 若刪除的正好是目前開啟中的抽屜，自動關閉
+                if (activeTodoId === id) closeDrawer();
+                showToast('任務已刪除', 'success');
+            } catch (err) {
+                console.error('刪除任務失敗：', err);
+                showToast('刪除失敗，請稍後再試', 'error');
+            }
+        }
+
+        // 打開詳細檢視抽屜
+        async function openDrawer(id, title, desc, assigneesArr, dueDate) {
+            activeTodoId = id;
+            activeTodoTitle = title;
+            document.getElementById('drawerTitleInput').value = title;
+            document.getElementById('drawerDescInput').value = desc;
+            document.getElementById('drawerDateInput').value = dueDate || '';
+            
+            // 渲染抽屜內的多選成員名單並標記已勾選者（同時相容 uid 新格式與暱稱字串的舊資料）
+            const drawerAssignRef = document.getElementById('drawerAssigneesContainer');
+            drawerAssignRef.innerHTML = allMembers.map(member => {
+                const isChecked = isMemberAssigned(assigneesArr, member) ? 'checked' : '';
+                return `
+                    <label class="flex items-center gap-1 bg-gray-100 px-2.5 py-1.5 rounded-xl text-xs cursor-pointer">
+                        <input type="checkbox" name="drawerAssignees" value="${member.uid}" ${isChecked} class="rounded accent-[#8e3f75]">
+                        ${member.displayName}
+                    </label>
+                `;
+            }).join('');
+
+            const drawer = document.getElementById('detailDrawer');
+            drawer.classList.remove('hidden');
+            setTimeout(() => {
+                drawer.classList.add('opacity-100');
+                drawer.querySelector('div').classList.remove('translate-y-full');
+            }, 50);
+
+            // 讀取該任務 Log
+            if (unsubscribeLogs) unsubscribeLogs();
+            const logsRef = collection(db, "logs");
+            const q = query(logsRef, where("todo_id", "==", id));
+            
+            unsubscribeLogs = onSnapshot(q, (snapshot) => {
+                const logsContainer = document.getElementById('drawerLogs');
+                logsContainer.innerHTML = '';
+                
+                if (snapshot.empty) {
+                    logsContainer.innerHTML = '<p class="text-gray-400">暫無操作紀錄</p>';
+                    return;
+                }
+
+                let logList = [];
+                snapshot.forEach(docSnap => logList.push(docSnap.data()));
+                logList.sort((a, b) => (a.timestamp?.toDate() || 0) - (b.timestamp?.toDate() || 0));
+
+                logList.forEach(log => {
+                    const timeStr = log.timestamp ? new Date(log.timestamp.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '剛剛';
+                    const item = document.createElement('div');
+                    item.className = "relative pl-2";
+                    item.innerHTML = `
+                        <span class="absolute -left-[21px] top-1 bg-pink-purple w-2 h-2 rounded-full"></span>
+                        <p class="text-gray-700 font-bold">[${timeStr}] ${log.operator_name}</p>
+                        <p class="text-gray-500 mt-0.5">${log.content}</p>
+                    `;
+                    logsContainer.appendChild(item);
+                });
+            }, (err) => {
+                console.error('讀取操作紀錄失敗：', err);
+                document.getElementById('drawerLogs').innerHTML = '<p class="text-red-400"><i class="fa-solid fa-triangle-exclamation"></i> 紀錄讀取失敗</p>';
+            });
+        }
+
+        window.closeDrawer = function() {
+            const drawer = document.getElementById('detailDrawer');
+            drawer.classList.remove('opacity-100');
+            drawer.querySelector('div').classList.add('translate-y-full');
+            setTimeout(() => drawer.classList.add('hidden'), 300);
+            if (unsubscribeLogs) unsubscribeLogs();
+        }
+        document.getElementById('closeDrawerBtn').addEventListener('click', closeDrawer);
+
+        // 清除日期按鈕
+        document.getElementById('drawerDateClearBtn').addEventListener('click', () => {
+            document.getElementById('drawerDateInput').value = '';
+        });
+
+        // 儲存抽屜的大更新
+        document.getElementById('saveTodoChangesBtn').addEventListener('click', async () => {
+            if (!activeTodoId) return;
+            const newTitle = document.getElementById('drawerTitleInput').value.trim();
+            const newDesc = document.getElementById('drawerDescInput').value.trim();
+            const newDueDate = document.getElementById('drawerDateInput').value || null;
+            
+            if (!newTitle) return showToast("任務名稱不能為空！", 'error');
+
+            const checkedBoxes = document.querySelectorAll('input[name="drawerAssignees"]:checked');
+            const newAssignees = Array.from(checkedBoxes).map(cb => cb.value);
+            const newAssigneeNames = newAssignees.map(uid => resolveAssigneeLabel(uid));
+
+            try {
+                await updateDoc(doc(db, "todos", activeTodoId), { 
+                    title: newTitle,
+                    description: newDesc,
+                    assignees: newAssignees,
+                    due_date: newDueDate
+                });
+
+                await addDoc(collection(db, "logs"), {
+                    todo_id: activeTodoId,
+                    todo_title: newTitle,
+                    operator_name: myNickname,
+                    action: "UPDATE_TASK",
+                    content: `更新了任務。負責人: [${newAssigneeNames.join(', ') || '無'}], 日期: ${newDueDate || '未設定'}, 備註: "${newDesc}"`,
+                    timestamp: serverTimestamp()
+                });
+
+                showToast('修改成功！', 'success');
+                closeDrawer();
+            } catch (err) {
+                console.error('儲存任務修改失敗：', err);
+                showToast('儲存失敗，請稍後再試', 'error');
+            }
+        });
+
+        // 刪除任務（抽屜內按鈕）
+        document.getElementById('deleteTodoBtn').addEventListener('click', () => {
+            if (!activeTodoId) return;
+            deleteTodoTask(activeTodoId, activeTodoTitle);
+        });
+
+        // 新增任務
+        document.getElementById('openCreateModalBtn').addEventListener('click', () => createModal.classList.remove('hidden'));
+        document.getElementById('closeCreateModalBtn').addEventListener('click', () => createModal.classList.add('hidden'));
+
+        document.getElementById('submitTodoBtn').addEventListener('click', async () => {
+            const title = document.getElementById('newTodoTitle').value.trim();
+            const desc = document.getElementById('newTodoDesc').value.trim();
+            const dueDate = document.getElementById('newTodoDate').value || null;
+            
+            if (!title) return showToast('請填寫任務名稱！', 'error');
+
+            const checkedBoxes = document.querySelectorAll('input[name="newAssignees"]:checked');
+            const assignees = Array.from(checkedBoxes).map(cb => cb.value);
+            const assigneeNames = assignees.map(uid => resolveAssigneeLabel(uid));
+
+            try {
+                const docRef = await addDoc(collection(db, "todos"), {
+                    title: title,
+                    description: desc,
+                    is_completed: false,
+                    assignees: assignees,
+                    due_date: dueDate,
+                    created_by: myNickname,
+                    created_at: serverTimestamp()
+                });
+
+                await addDoc(collection(db, "logs"), {
+                    todo_id: docRef.id,
+                    todo_title: title,
+                    operator_name: myNickname,
+                    action: "CREATE",
+                    content: `建立了這項新任務。指派負責人：[${assigneeNames.join(', ') || '所有人辦理'}]`,
+                    timestamp: serverTimestamp()
+                });
+
+                document.getElementById('newTodoTitle').value = '';
+                document.getElementById('newTodoDesc').value = '';
+                document.getElementById('newTodoDate').value = '';
+                document.querySelectorAll('input[name="newAssignees"]').forEach(cb => cb.checked = false);
+                createModal.classList.add('hidden');
+                showToast('任務已建立！', 'success');
+            } catch (err) {
+                console.error('建立任務失敗：', err);
+                showToast('建立失敗，請稍後再試', 'error');
+            }
+        });
+
+        // 頁籤切換
+        const tabAll = document.getElementById('tabAll');
+        const tabMine = document.getElementById('tabMine');
+        const tabActiveClass = "flex-1 py-2.5 text-center rounded-xl font-bold bg-main-purple text-white transition-all text-sm flex items-center justify-center gap-1.5";
+        const tabInactiveClass = "flex-1 py-2.5 text-center rounded-xl font-bold bg-gray-100 text-gray-600 transition-all text-sm flex items-center justify-center gap-1.5";
+        tabAll.addEventListener('click', () => {
+            currentView = 'all';
+            tabAll.className = tabActiveClass;
+            tabMine.className = tabInactiveClass;
+            startListeningTodos();
+        });
+        tabMine.addEventListener('click', () => {
+            currentView = 'mine';
+            tabMine.className = tabActiveClass;
+            tabAll.className = tabInactiveClass;
+            startListeningTodos();
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            signOut(auth).then(() => window.location.replace('login.html'));
+        });
+    </script>
+
+    <!-- 註冊 Service Worker，讓瀏覽器判定這是可安裝的 PWA -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch((err) => {
+                    console.error('Service Worker 註冊失敗：', err);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
