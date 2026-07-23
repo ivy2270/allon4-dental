@@ -1,4 +1,4 @@
-const CACHE_NAME = 'todo-v3'; // 升級版本號，強制瀏覽器觸發更新並清空舊快取
+const CACHE_NAME = 'todo-v4'; // 升級版本號，強制瀏覽器觸發更新並清空舊快取
 const ASSETS = [
   './login.html',
   './index.html',
