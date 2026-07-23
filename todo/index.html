@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>活動待辦系統 - 主畫面</title>
+    <title>四校待辦系統</title>
 	<link rel="icon" type="image/svg+xml" href="favicon.svg">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://font.emtech.cc/css/jfOpenHuninn" rel="stylesheet" />
@@ -34,6 +34,7 @@
         .btn-primary { background-color: var(--purple-900); transition: background-color .15s ease, transform .1s ease; }
         .btn-primary:hover { background-color: var(--purple-700); }
         .btn-primary:active { transform: scale(.98); }
+        .btn-primary:disabled { opacity: .6; cursor: not-allowed; transform: none; }
         .fab-primary { background-color: var(--purple-900); transition: background-color .15s ease, transform .15s ease; }
         .fab-primary:hover { background-color: var(--purple-700); }
         .todo-card { transition: box-shadow .15s ease, transform .1s ease; }
@@ -726,6 +727,9 @@
         document.getElementById('closeCreateModalBtn').addEventListener('click', () => createModal.classList.add('hidden'));
 
         document.getElementById('submitTodoBtn').addEventListener('click', async () => {
+            const submitBtn = document.getElementById('submitTodoBtn');
+            if (submitBtn.disabled) return; // 防止重複點擊觸發
+
             const title = document.getElementById('newTodoTitle').value.trim();
             const desc = document.getElementById('newTodoDesc').value.trim();
             const dueDate = document.getElementById('newTodoDate').value || null;
@@ -735,6 +739,10 @@
             const checkedBoxes = document.querySelectorAll('input[name="newAssignees"]:checked');
             const assignees = Array.from(checkedBoxes).map(cb => cb.value);
             const assigneeNames = assignees.map(uid => resolveAssigneeLabel(uid));
+
+            const originalHtml = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 建立中...';
 
             try {
                 const docRef = await addDoc(collection(db, "todos"), {
@@ -765,6 +773,9 @@
             } catch (err) {
                 console.error('建立任務失敗：', err);
                 showToast('建立失敗，請稍後再試', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalHtml;
             }
         });
 
