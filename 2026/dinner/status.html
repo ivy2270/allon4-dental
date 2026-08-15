@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>登錄現況總覽</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --deep:#8e3f75; --deep-dark:#6f3160; --soft:#d09ba3;
+    --blush:#fdf6f7; --cream:#fbeef1; --ink:#4a3040; --ink-soft:#8c7480;
+    --good:#4f8a68; --empty:#cbb9c1;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; padding: 28px 16px 60px; min-height:100vh;
+    font-family:'Noto Sans TC', sans-serif; color:var(--ink);
+    background: radial-gradient(circle at 10% 0%, rgba(208,155,163,0.22), transparent 50%), var(--blush);
+  }
+  .wrap{ max-width: 980px; margin: 0 auto; }
+  header{ text-align:center; margin-bottom: 26px; }
+  .eyebrow{ font-size:0.72rem; letter-spacing:0.24em; color:var(--soft); font-weight:700; text-transform:uppercase; }
+  h1{ font-family:'Noto Serif TC', serif; color:var(--deep-dark); font-size:1.6rem; margin: 6px 0 4px; }
+  .sub{ color:var(--ink-soft); font-size:0.9rem; }
+
+  .toolbar{
+    display:flex; gap:10px; justify-content:center; align-items:center; margin: 18px 0 28px; flex-wrap:wrap;
+  }
+  .toolbar input{
+    padding: 10px 16px; border-radius: 999px; border: 1.5px solid #eee0e3; font-family:inherit;
+    width: 140px; text-align:center; font-size:0.95rem;
+  }
+  .toolbar input:focus{ outline:none; border-color:var(--soft); }
+  .toolbar button{
+    padding: 10px 22px; border:none; border-radius: 999px; font-family:inherit; font-weight:700;
+    cursor:pointer; background: linear-gradient(135deg, var(--deep), var(--deep-dark)); color:#fff;
+    box-shadow: 0 8px 18px rgba(142,63,117,0.25);
+  }
+  .toolbar button.ghost{
+    background:#fff; color:var(--deep-dark); border: 1.5px solid #eee0e3; box-shadow:none;
+  }
+
+  .grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+  .table-card{
+    background:#fff; border-radius:20px; padding: 18px 20px; border: 1px solid #f4e7ea;
+    box-shadow: 0 10px 26px rgba(142,63,117,0.08);
+  }
+  .table-card.full{ border-color: #e7d3ce; background: linear-gradient(180deg,#fff, #fdf5f2); }
+  .tc-head{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom: 12px; }
+  .tc-head .no{ font-family:'Noto Serif TC', serif; font-weight:700; font-size:1.2rem; color:var(--deep-dark); }
+  .tc-head .count{ font-size:0.85rem; font-weight:700; color:var(--soft); }
+  .tc-head .count.full{ color:#b6495a; }
+  .seats{ display:grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .seat{
+    aspect-ratio: 1; border-radius: 10px; display:flex; align-items:center; justify-content:center;
+    flex-direction:column; font-size:0.68rem; line-height:1.3; text-align:center; padding: 2px;
+  }
+  .seat.filled{ background: var(--cream); color: var(--deep-dark); font-weight:700; }
+  .seat.empty{ background: #f8f2f4; color: var(--empty); border: 1px dashed #eadde1; }
+  .seat .idx{ font-size:0.6rem; opacity:0.6; }
+  .empty-state{ text-align:center; color:var(--ink-soft); padding: 60px 0; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Table Status</div>
+    <h1>登錄現況總覽</h1>
+    <p class="sub">確認各桌報名人數與空位</p>
+  </header>
+
+  <div class="toolbar">
+    <input id="filterTable" type="text" inputmode="numeric" placeholder="輸入桌號篩選">
+    <button id="filterBtn">查詢</button>
+    <button class="ghost" id="clearBtn">顯示全部</button>
+    <button class="ghost" id="refreshBtn">🔄 重新整理</button>
+  </div>
+
+  <div class="grid" id="grid"><div class="empty-state">載入中…</div></div>
+
+  <div style="text-align:center; margin-top:26px; font-size:0.85rem;">
+    <a href="draw.html" style="color:var(--deep); text-decoration:none; font-weight:700; margin:0 8px;">回到抽獎</a> ·
+    <a href="winners.html" style="color:var(--deep); text-decoration:none; font-weight:700; margin:0 8px;">得獎名單</a>
+  </div>
+</div>
+
+<script>
+// ------------ 設定區：請填入您的 Supabase 專案資訊 ------------
+const SUPABASE_URL = 'https://ytfpmewrlsbvwgdfzknx.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0ZnBtZXdybHNidndnZGZ6a254Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzUzMTQsImV4cCI6MjA5NTExMTMxNH0.trs8nAs5oe7Qc_8FX3Y-z9yVvynAfu5omuvX-oHnm-4';
+const FUNCTION_URL = `${SUPABASE_URL}/functions/v1/lottery`;
+// ---------------------------------------------------------------
+
+let allTables = {};
+
+async function callFn(action, data = {}) {
+  const resp = await fetch(FUNCTION_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+    body: JSON.stringify({ action, data }),
+  });
+  return resp.json();
+}
+
+function renderTables(filterNo) {
+  const grid = document.getElementById('grid');
+  const keys = Object.keys(allTables)
+    .filter(k => !filterNo || k === String(filterNo))
+    .sort((a, b) => Number(a) - Number(b));
+
+  if (keys.length === 0) {
+    grid.innerHTML = '<div class="empty-state">目前沒有符合的桌號資料</div>';
+    return;
+  }
+
+  grid.innerHTML = keys.map(tableNo => {
+    const seatsData = allTables[tableNo];
+    const filledMap = {};
+    seatsData.forEach(s => filledMap[s.seat_no] = s.name);
+    const count = seatsData.length;
+    const isFull = count >= 10;
+
+    const seatsHtml = Array.from({ length: 10 }, (_, i) => i + 1).map(n => {
+      if (filledMap[n]) {
+        return `<div class="seat filled"><div>${filledMap[n]}</div><div class="idx">${n}</div></div>`;
+      }
+      return `<div class="seat empty"><div>空位</div><div class="idx">${n}</div></div>`;
+    }).join('');
+
+    return `
+      <div class="table-card ${isFull ? 'full' : ''}">
+        <div class="tc-head">
+          <span class="no">第 ${tableNo} 桌</span>
+          <span class="count ${isFull ? 'full' : ''}">${count} / 10</span>
+        </div>
+        <div class="seats">${seatsHtml}</div>
+      </div>`;
+  }).join('');
+}
+
+async function loadStatus() {
+  document.getElementById('grid').innerHTML = '<div class="empty-state">載入中…</div>';
+  const res = await callFn('status');
+  if (res.success) {
+    allTables = res.tables || {};
+    renderTables(document.getElementById('filterTable').value.trim());
+  } else {
+    document.getElementById('grid').innerHTML = '<div class="empty-state">讀取失敗，請重新整理</div>';
+  }
+}
+
+document.getElementById('filterBtn').onclick = () => renderTables(document.getElementById('filterTable').value.trim());
+document.getElementById('clearBtn').onclick = () => { document.getElementById('filterTable').value = ''; renderTables(''); };
+document.getElementById('refreshBtn').onclick = loadStatus;
+
+window.onload = loadStatus;
+</script>
+</body>
+</html>
