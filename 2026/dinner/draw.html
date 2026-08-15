@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>四院校晚宴抽獎</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --deep:#8e3f75; --deep-dark:#6f3160; --soft:#d09ba3;
+    --blush:#fdf6f7; --cream:#fbeef1; --ink:#4a3040; --ink-soft:#8c7480;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; padding: 28px 16px 60px; min-height:100vh;
+    font-family:'Noto Sans TC', sans-serif; color:var(--ink);
+    background: radial-gradient(circle at 90% 0%, rgba(208,155,163,0.22), transparent 50%), var(--blush);
+  }
+  .wrap{ max-width: 760px; margin: 0 auto; }
+  header{ text-align:center; margin-bottom: 26px; }
+  .eyebrow{ font-size:0.72rem; letter-spacing:0.24em; color:var(--soft); font-weight:700; text-transform:uppercase; }
+  h1{ font-family:'Noto Serif TC', serif; color:var(--deep-dark); font-size:1.7rem; margin: 6px 0 4px; }
+  .sub{ color:var(--ink-soft); font-size:0.9rem; }
+
+  .panel{
+    background:#fff; border-radius: 24px; padding: 26px; box-shadow: 0 14px 34px rgba(142,63,117,0.1);
+    border: 1px solid #f4e7ea; margin-bottom: 22px;
+  }
+  .row{ display:grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 14px; }
+  label{ display:block; font-size:0.82rem; font-weight:700; color:var(--ink-soft); margin-bottom:6px; }
+  input[type=text], input[type=number]{
+    width:100%; padding: 12px 14px; border-radius: 12px; border: 1.5px solid #eee0e3;
+    font-family: inherit; font-size: 1rem; background:#fffdfd;
+  }
+  input:focus{ outline:none; border-color: var(--soft); box-shadow: 0 0 0 4px rgba(208,155,163,0.16); }
+
+  .toggle-row{
+    display:flex; align-items:center; gap: 10px; background: var(--cream); border-radius: 14px;
+    padding: 12px 16px; margin-bottom: 18px;
+  }
+  .toggle-row input{ width:18px; height:18px; accent-color: var(--deep); }
+  .toggle-row label{ margin:0; font-size:0.88rem; color:var(--deep-dark); font-weight:700; cursor:pointer; }
+  .toggle-row .hint{ font-size:0.76rem; color: var(--ink-soft); font-weight:400; margin-left:auto; }
+
+  button.draw-btn{
+    width:100%; padding: 15px; border:none; border-radius: 999px;
+    background: linear-gradient(135deg, var(--deep), var(--deep-dark)); color:#fff;
+    font-family: inherit; font-weight:700; font-size: 1.05rem; letter-spacing:0.03em;
+    cursor:pointer; box-shadow: 0 12px 26px rgba(142,63,117,0.3);
+  }
+  button.draw-btn:disabled{ opacity:0.5; cursor:not-allowed; box-shadow:none; }
+
+  .result-panel{
+    background:#fff; border-radius: 24px; padding: 34px 20px; text-align:center;
+    border: 2px dashed #e7c9d2; min-height: 160px; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap: 14px; margin-bottom: 22px;
+  }
+  .result-panel .placeholder{ color: var(--ink-soft); font-size:1.05rem; }
+  .prize-label{ font-family:'Noto Serif TC', serif; color: var(--deep-dark); font-size:1.2rem; font-weight:700; }
+  .winners-grid{ display:flex; flex-wrap:wrap; gap: 12px; justify-content:center; }
+  .winner-chip{
+    background: var(--cream); border-radius: 16px; padding: 12px 18px; min-width: 110px;
+  }
+  .winner-chip .fullno{
+    font-family:'Noto Serif TC', serif; font-size: 1.5rem; font-weight:700; color: var(--deep);
+    display:block;
+  }
+  .winner-chip .wname{ font-size:0.82rem; color: var(--ink-soft); margin-top:4px; }
+  .animating .winner-chip{ animation: flicker 0.12s infinite alternate; }
+  @keyframes flicker{ 0%{ opacity:1; } 100%{ opacity:0.55; } }
+
+  .nav{ text-align:center; margin-top: 26px; font-size:0.85rem; }
+  .nav a{ color: var(--deep); text-decoration:none; font-weight:700; margin: 0 8px; }
+
+  .winners-panel-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px; }
+  .winners-panel-head .title{ font-family:'Noto Serif TC', serif; font-weight:700; font-size:1.15rem; color: var(--deep-dark); }
+  .winners-panel-head button{
+    padding: 8px 18px; border-radius: 999px; border: 1.5px solid #eee0e3; background:#fff;
+    color: var(--deep-dark); font-family:inherit; font-weight:700; cursor:pointer; font-size:0.8rem;
+  }
+  .claimed-bg{ --claimed-bg:#f1ebee; --claimed-ink:#b3a3ac; }
+  .group{ margin-bottom: 16px; }
+  .group:last-child{ margin-bottom: 0; }
+  .group-head{ display:flex; align-items:center; gap:10px; margin-bottom: 10px; flex-wrap:wrap; }
+  .group-head .gtitle{ font-family:'Noto Serif TC', serif; font-weight:700; font-size:1rem; color: var(--deep-dark); }
+  .badge-repeat{
+    font-size:0.68rem; font-weight:700; padding: 3px 10px; border-radius: 999px;
+    background: var(--cream); color: var(--deep);
+  }
+  .tags{ display:flex; flex-wrap:wrap; gap: 10px; }
+  .tag{
+    background: var(--cream); border-radius: 14px; padding: 10px 16px; cursor:pointer;
+    text-align:center; min-width: 96px; transition: opacity .15s, transform .1s; user-select:none;
+  }
+  .tag:active{ transform: scale(0.97); }
+  .tag .fullno{ font-family:'Noto Serif TC', serif; font-weight:700; font-size:1.1rem; color: var(--deep); display:block; }
+  .tag .wname{ font-size:0.76rem; color: var(--ink-soft); margin-top: 2px; }
+  .tag.claimed{ background: #f1ebee; }
+  .tag.claimed .fullno{ color: #b3a3ac; text-decoration: line-through; }
+  .tag.claimed .wname{ color: #b3a3ac; }
+  .winners-empty{ text-align:center; color:var(--ink-soft); padding: 30px 0; font-size:0.9rem; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Lucky Draw</div>
+    <h1>抽獎控制台</h1>    
+  </header>
+
+  <div class="panel">
+    <div class="row">
+      <div>
+        <label>本次獎項</label>
+        <input type="text" id="prizeName" placeholder="例如：特獎、早鳥獎" value="特獎">
+      </div>
+      <div>
+        <label>抽出人數</label>
+        <input type="number" id="count" value="1" min="1">
+      </div>
+    </div>
+
+    <div class="toggle-row">
+      <input type="checkbox" id="repeatable">
+      <label for="repeatable">早鳥獎（可回抽）</label>      
+    </div>
+
+    <button class="draw-btn" id="drawBtn">🎊 開始抽獎</button>
+  </div>
+
+  <div class="result-panel" id="resultPanel">
+    <p class="placeholder">祝大家中獎 🎉</p>
+  </div>
+
+  <div class="panel">
+    <div class="winners-panel-head">
+      <span class="title">🏆 歷史得獎名單</span>
+      <button id="winnersRefreshBtn">🔄 重新整理</button>
+    </div>
+    <div id="winnersGroups"><p class="winners-empty">載入中…</p></div>
+  </div>
+
+  <div class="nav">
+    <a href="status.html">登錄現況</a> · <a href="winners.html">中獎名單</a>
+  </div>
+</div>
+
+<script>
+// ------------ 設定區：請填入您的 Supabase 專案資訊 ------------
+const SUPABASE_URL = 'https://ytfpmewrlsbvwgdfzknx.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0ZnBtZXdybHNidndnZGZ6a254Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzUzMTQsImV4cCI6MjA5NTExMTMxNH0.trs8nAs5oe7Qc_8FX3Y-z9yVvynAfu5omuvX-oHnm-4';
+const FUNCTION_URL = `${SUPABASE_URL}/functions/v1/lottery`;
+// ---------------------------------------------------------------
+
+async function callFn(action, data = {}) {
+  const resp = await fetch(FUNCTION_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+    body: JSON.stringify({ action, data }),
+  });
+  return resp.json();
+}
+
+const drawBtn = document.getElementById('drawBtn');
+const resultPanel = document.getElementById('resultPanel');
+
+drawBtn.onclick = async () => {
+  const prize = document.getElementById('prizeName').value.trim();
+  const count = parseInt(document.getElementById('count').value, 10);
+  const repeatable = document.getElementById('repeatable').checked;
+
+  if (!prize) return alert('請輸入獎項名稱');
+  if (isNaN(count) || count <= 0) return alert('請輸入正確的抽出人數');
+
+  drawBtn.disabled = true;
+  resultPanel.classList.add('animating');
+  resultPanel.innerHTML = `<div class="prize-label">${prize} 抽獎中…</div><div class="winners-grid" id="animGrid"></div>`;
+
+  // 先跑一個純視覺的洗牌動畫（不影響實際抽獎結果，結果由後端決定）
+  let ticks = 0;
+  const animTimer = setInterval(() => {
+    const fakeNos = Array.from({ length: count }, () =>
+      `${Math.floor(Math.random() * 20) + 1}-${Math.floor(Math.random() * 10) + 1}`);
+    document.getElementById('animGrid').innerHTML = fakeNos.map(n =>
+      `<div class="winner-chip"><span class="fullno">${n}</span></div>`).join('');
+    if (++ticks > 18) clearInterval(animTimer);
+  }, 70);
+
+  try {
+    const res = await callFn('draw', { prize, count, repeatable });
+    setTimeout(() => {
+      clearInterval(animTimer);
+      resultPanel.classList.remove('animating');
+      if (res.success) {
+        resultPanel.innerHTML = `
+          <div class="prize-label">🏆 ${prize}</div>
+          <div class="winners-grid">
+            ${res.winners.map(w => `
+              <div class="winner-chip">
+                <span class="fullno">${w.fullNo}</span>
+                <div class="wname">${w.name}</div>
+              </div>`).join('')}
+          </div>`;
+      } else {
+        resultPanel.innerHTML = `<p class="placeholder">${res.message || '抽獎失敗，請再試一次'}</p>`;
+      }
+      drawBtn.disabled = false;
+    }, 1300);
+  } catch (e) {
+    clearInterval(animTimer);
+    resultPanel.classList.remove('animating');
+    resultPanel.innerHTML = `<p class="placeholder">連線失敗，請重新嘗試</p>`;
+    drawBtn.disabled = false;
+    console.error(e);
+  }
+
+  loadWinnersList();
+};
+
+// ---------------- 歷史得獎名單（同步顯示，方便主持人叫號/確認領獎狀態） ----------------
+function renderWinnersGroups(list) {
+  const container = document.getElementById('winnersGroups');
+  if (!list.length) {
+    container.innerHTML = '<p class="winners-empty">目前還沒有中獎紀錄</p>';
+    return;
+  }
+
+  const order = [];
+  const groups = {};
+  list.forEach(item => {
+    if (!groups[item.prize]) { groups[item.prize] = []; order.push(item.prize); }
+    groups[item.prize].push(item);
+  });
+
+  container.innerHTML = order.map(prize => {
+    const items = groups[prize];
+    const repeatable = items[0].repeatable;
+    const tagsHtml = items.map(item => `
+      <div class="tag ${item.claimed ? 'claimed' : ''}" data-id="${item.id}">
+        <span class="fullno">${item.fullNo}</span>
+        <div class="wname">${item.name}</div>
+      </div>`).join('');
+
+    return `
+      <div class="group">
+        <div class="group-head">
+          <span class="gtitle">${prize}</span>
+          ${repeatable ? '<span class="badge-repeat">可回抽</span>' : ''}
+        </div>
+        <div class="tags">${tagsHtml}</div>
+      </div>`;
+  }).join('');
+
+  container.querySelectorAll('.tag').forEach(tag => {
+    tag.addEventListener('click', async () => {
+      if (tag.style.pointerEvents === 'none') return;
+      tag.style.pointerEvents = 'none';
+      tag.style.opacity = '0.4';
+      const res = await callFn('toggleClaim', { id: tag.dataset.id });
+      if (res.success) {
+        tag.classList.toggle('claimed', res.claimed);
+      } else {
+        alert('更新失敗，請重新整理後再試');
+      }
+      tag.style.pointerEvents = 'auto';
+      tag.style.opacity = '1';
+    });
+  });
+}
+
+async function loadWinnersList() {
+  const res = await callFn('winners');
+  if (res.success) {
+    renderWinnersGroups(res.list || []);
+  } else {
+    document.getElementById('winnersGroups').innerHTML = '<p class="winners-empty">讀取失敗，請按重新整理</p>';
+  }
+}
+
+document.getElementById('winnersRefreshBtn').onclick = loadWinnersList;
+loadWinnersList();
+</script>
+</body>
+</html>
