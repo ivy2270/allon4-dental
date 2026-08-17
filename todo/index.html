@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>四校待辦系統</title>
+    <title>活動待辦系統 - 主畫面</title>
 	<link rel="icon" type="image/svg+xml" href="favicon.svg">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://font.emtech.cc/css/jfOpenHuninn" rel="stylesheet" />
@@ -492,6 +492,11 @@
                     localTodos.push({ id: docSnap.id, ...docSnap.data() });
                 });
                 localTodos.sort((a, b) => {
+                    // 已完成的任務一律排到最下面，優先於其他排序規則
+                    const completedA = a.is_completed ? 1 : 0;
+                    const completedB = b.is_completed ? 1 : 0;
+                    if (completedA !== completedB) return completedA - completedB;
+
                     const groupA = getDateGroup(a.due_date);
                     const groupB = getDateGroup(b.due_date);
                     if (groupA !== groupB) return groupA - groupB;
