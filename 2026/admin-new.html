@@ -210,7 +210,7 @@
           <option value="active">有效</option>
           <option value="voided">已作廢</option>
         </select>
-        <input id="addonDoctorFilter" type="text" placeholder="輸入醫師姓名篩選"
+        <input id="addonDoctorFilter" type="text" placeholder="輸入醫師姓名或學校篩選"
           class="rounded-md border border-slate-300 px-3 py-2 text-sm font-bold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
         <button id="addonRefreshBtn" class="flex items-center gap-1 rounded-md border border-slate-200 px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50">
           <i data-lucide="refresh-cw" class="h-4 w-4"></i> 重新整理
@@ -915,9 +915,9 @@ async function loadAddonRecords() {
 }
 
 function applyAddonDoctorFilter() {
-  const doctorName = document.getElementById("addonDoctorFilter").value.trim();
-  const filtered = doctorName
-    ? addonCache.filter(r => (r.name || "").includes(doctorName))
+  const keyword = document.getElementById("addonDoctorFilter").value.trim();
+  const filtered = keyword
+    ? addonCache.filter(r => (r.name || "").includes(keyword) || (r.school || "").includes(keyword))
     : addonCache;
   renderAddonTable(filtered);
 }
